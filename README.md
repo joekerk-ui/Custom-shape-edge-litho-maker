@@ -25,6 +25,10 @@
         .value-badge { font-family: monospace; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; }
         
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.02); }
+        
+        /* Sidebar container fix */
+        .sidebar-container { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+        .sidebar-scrollable { flex: 1; overflow-y: auto; min-height: 0; }
     </style>
 </head>
 <body>
@@ -46,92 +50,93 @@
 
     <main class="flex flex-col md:flex-row flex-1 overflow-hidden relative">
         <!-- Sidebar -->
-        <aside class="w-full md:w-80 bg-[#08080c] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 shadow-2xl max-h-[50dvh] md:max-h-full">
-            <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6 md:space-y-8">
-                <!-- 1. Source -->
-                <section>
-                    <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
-                    <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-32 md:h-40 overflow-hidden group">
-                        <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
-                            <i class="fas fa-upload text-2xl md:text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Upload WTIU Photo</span>
-                        </div>
-                        <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
-                        <input id="image-input" type="file" class="hidden" accept="image/*">
-                    </label>
-                </section>
-
-                <!-- 2. Profile -->
-                <section>
-                    <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
-                    <div class="grid grid-cols-1 gap-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button data-shape="Alpha" class="shape-btn active px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
-                            <button data-shape="Rectangle" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
-                        </div>
-                        <button data-shape="Curved" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all text-nowrap">
-                            <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
-                        </button>
-                    </div>
-                </section>
-
-                <!-- 3. Settings -->
-                <section class="space-y-6">
-                    <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
-                    
-                    <div class="space-y-5">
-                        <div>
-                            <div class="control-label text-[9px]">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
-                            <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
-                        </div>
-
-                        <div>
-                            <div class="control-label text-[9px]">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
-                            <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0">
-                        </div>
-
-                        <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1">
-                            <div class="control-label text-[9px]">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
-                            <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
-                        </div>
-
-                        <div>
-                            <div class="control-label text-[9px]">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
-                            <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
-                        </div>
-
-                        <div>
-                            <div class="control-label text-[9px]">Detail Level <span id="res-val" class="value-badge">200px</span></div>
-                            <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 pb-4">
-                            <div>
-                                <span class="control-label italic text-[8px]">Width (mm)</span>
-                                <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+        <aside class="w-full md:w-80 bg-[#08080c] border-b md:border-b-0 md:border-r border-white/5 z-20 shadow-2xl flex flex-col h-[50dvh] md:h-full shrink-0">
+            <div class="sidebar-container">
+                <div class="sidebar-scrollable p-4 md:p-6 custom-scrollbar space-y-6 md:space-y-8">
+                    <!-- 1. Source -->
+                    <section>
+                        <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
+                        <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-32 md:h-40 overflow-hidden group">
+                            <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
+                                <i class="fas fa-upload text-2xl md:text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                                <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Upload WTIU Photo</span>
                             </div>
+                            <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
+                            <input id="image-input" type="file" class="hidden" accept="image/*">
+                        </label>
+                    </section>
+
+                    <!-- 2. Profile -->
+                    <section>
+                        <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button data-shape="Alpha" class="shape-btn active px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
+                                <button data-shape="Rectangle" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
+                            </div>
+                            <button data-shape="Curved" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all text-nowrap">
+                                <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- 3. Settings -->
+                    <section class="space-y-6">
+                        <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
+                        
+                        <div class="space-y-5">
                             <div>
-                                <span class="control-label italic text-[8px]">Height (mm)</span>
-                                <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                <div class="control-label text-[9px]">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
+                                <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
+                                <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0">
+                            </div>
+
+                            <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1">
+                                <div class="control-label text-[9px]">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
+                                <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
+                                <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Detail Level <span id="res-val" class="value-badge">200px</span></div>
+                                <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pb-4">
+                                <div>
+                                    <span class="control-label italic text-[8px]">Width (mm)</span>
+                                    <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                </div>
+                                <div>
+                                    <span class="control-label italic text-[8px]">Height (mm)</span>
+                                    <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- Generate Button pinned to bottom of sidebar -->
-            <div class="p-4 md:p-6 bg-[#08080c] border-t border-white/5 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
-                <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
-                    <i class="fas fa-hammer"></i> GENERATE
-                </button>
+                    </section>
+                </div>
+                
+                <!-- Fixed Footer Button in Sidebar -->
+                <div class="p-4 md:p-6 bg-[#08080c] border-t border-white/5 shrink-0">
+                    <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
+                        <i class="fas fa-hammer"></i> GENERATE
+                    </button>
+                </div>
             </div>
         </aside>
 
         <!-- Viewport -->
-        <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)] min-h-[300px]">
+        <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)] min-h-[200px] md:min-h-0">
             <div id="canvas-container" class="w-full h-full"></div>
             
-            <!-- Loading Overlay -->
             <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
                 <div class="flex flex-col items-center gap-6 text-center p-6">
                     <div class="w-16 h-16 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
@@ -144,7 +149,6 @@
                 </div>
             </div>
 
-            <!-- Notification Toast -->
             <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap z-50">
                 <span id="toast-text">Ready</span>
             </div>
