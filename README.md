@@ -1,4 +1,4 @@
-# Custom-shape-edge-litho-maker<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,9 +13,9 @@
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/exporters/STLExporter.js"></script>
 
     <style>
-        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         .glass { background: rgba(10, 10, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; }
+        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #050508; }
@@ -27,117 +27,125 @@
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.02); }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body>
 
-    <header class="px-6 py-4 glass z-40 flex items-center justify-between shadow-2xl">
-        <div class="flex items-center gap-3">
-            <div class="bg-indigo-600 p-2 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]">
-                <i class="fas fa-train text-white text-xl"></i>
+    <header class="px-4 md:px-6 py-3 md:py-4 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
+        <div class="flex items-center gap-2 md:gap-3">
+            <div class="bg-indigo-600 p-1.5 md:p-2 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+                <i class="fas fa-train text-white text-lg md:text-xl"></i>
             </div>
-            <div>
-                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Solid HD</span></h1>
+            <div class="hidden sm:block">
+                <h1 class="text-lg md:text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Solid HD</span></h1>
                 <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
             </div>
         </div>
-        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-8 py-3 rounded-full transition-all font-black text-xs tracking-widest shadow-lg active:scale-95">
-            <i class="fas fa-save"></i> DOWNLOAD MANIFOLD STL
+        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-4 md:px-8 py-2 md:py-3 rounded-full transition-all font-black text-[10px] md:text-xs tracking-widest shadow-lg active:scale-95 shrink-0">
+            <i class="fas fa-save"></i> <span class="hidden xs:inline">SAVE STL</span><span class="inline xs:hidden">STL</span>
         </button>
     </header>
 
-    <main class="flex flex-1 overflow-hidden relative">
-        <aside class="w-80 bg-[#08080c] border-r border-white/5 overflow-y-auto p-6 flex flex-col gap-8 z-20 shadow-2xl custom-scrollbar">
+    <main class="flex flex-col md:flex-row flex-1 overflow-hidden relative">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-80 bg-[#08080c] border-b md:border-b-0 md:border-r border-white/5 flex flex-col z-20 shadow-2xl max-h-[50dvh] md:max-h-full">
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6 md:space-y-8">
+                <!-- 1. Source -->
+                <section>
+                    <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
+                    <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-32 md:h-40 overflow-hidden group">
+                        <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
+                            <i class="fas fa-upload text-2xl md:text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                            <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Upload WTIU Photo</span>
+                        </div>
+                        <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
+                        <input id="image-input" type="file" class="hidden" accept="image/*">
+                    </label>
+                </section>
+
+                <!-- 2. Profile -->
+                <section>
+                    <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
+                    <div class="grid grid-cols-1 gap-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button data-shape="Alpha" class="shape-btn active px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
+                            <button data-shape="Rectangle" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
+                        </div>
+                        <button data-shape="Curved" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all text-nowrap">
+                            <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 3. Settings -->
+                <section class="space-y-6">
+                    <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <div class="control-label text-[9px]">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
+                            <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
+                        </div>
+
+                        <div>
+                            <div class="control-label text-[9px]">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
+                            <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0">
+                        </div>
+
+                        <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1">
+                            <div class="control-label text-[9px]">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
+                            <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
+                        </div>
+
+                        <div>
+                            <div class="control-label text-[9px]">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
+                            <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
+                        </div>
+
+                        <div>
+                            <div class="control-label text-[9px]">Detail Level <span id="res-val" class="value-badge">200px</span></div>
+                            <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 pb-4">
+                            <div>
+                                <span class="control-label italic text-[8px]">Width (mm)</span>
+                                <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                            </div>
+                            <div>
+                                <span class="control-label italic text-[8px]">Height (mm)</span>
+                                <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
             
-            <section>
-                <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
-                <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-40 overflow-hidden group">
-                    <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
-                        <i class="fas fa-upload text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
-                        <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Drag WTIU / MTH Photo</span>
-                        <span class="text-[8px] text-zinc-400 italic">Tracing silhouette edges...</span>
-                    </div>
-                    <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
-                    <input id="image-input" type="file" class="hidden" accept="image/*">
-                </label>
-            </section>
-
-            <section>
-                <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
-                <div class="grid grid-cols-1 gap-2">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button data-shape="Alpha" class="shape-btn active px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
-                        <button data-shape="Rectangle" class="shape-btn px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
-                    </div>
-                    <button data-shape="Curved" class="shape-btn px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">
-                        <i class="fas fa-dot-circle mr-1"></i> Curved (Cylindrical)
-                    </button>
-                </div>
-            </section>
-
-            <section class="flex flex-col gap-6">
-                <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
-                
-                <div class="space-y-6">
-                    <div>
-                        <div class="control-label">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
-                        <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0" class="w-full">
-                    </div>
-
-                    <div>
-                        <div class="control-label">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
-                        <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0" class="w-full">
-                    </div>
-
-                    <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1 space-y-4">
-                        <div>
-                            <div class="control-label">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
-                            <input id="curve-radius" type="range" min="20" max="500" step="1" value="100" class="w-full">
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="control-label">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
-                        <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5" class="w-full">
-                    </div>
-
-                    <div>
-                        <div class="control-label">Detail Level <span id="res-val" class="value-badge">200px</span></div>
-                        <input id="res-slider" type="range" min="50" max="400" step="10" value="200" class="w-full">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="control-label italic">Width (mm)</span>
-                            <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
-                        </div>
-                        <div>
-                            <span class="control-label italic">Height (mm)</span>
-                            <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <button id="render-btn" disabled class="mt-auto flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
-                <i class="fas fa-hammer"></i> GENERATE MANIFOLD
-            </button>
+            <!-- Generate Button pinned to bottom of sidebar -->
+            <div class="p-4 md:p-6 bg-[#08080c] border-t border-white/5 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
+                    <i class="fas fa-hammer"></i> GENERATE
+                </button>
+            </div>
         </aside>
 
-        <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)]">
+        <!-- Viewport -->
+        <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)] min-h-[300px]">
             <div id="canvas-container" class="w-full h-full"></div>
             
+            <!-- Loading Overlay -->
             <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
-                <div class="flex flex-col items-center gap-6 text-center">
-                    <div class="w-20 h-20 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
+                <div class="flex flex-col items-center gap-6 text-center p-6">
+                    <div class="w-16 h-16 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
                     <div class="space-y-2">
-                        <p id="loading-text" class="font-bold text-white text-lg tracking-widest uppercase italic">Sculpting Solid Volume</p>
-                        <div class="w-48 h-1 bg-zinc-900 rounded-full overflow-hidden">
+                        <p id="loading-text" class="font-bold text-white text-base md:text-lg tracking-widest uppercase italic leading-tight">Sculpting Solid Volume</p>
+                        <div class="w-40 md:w-48 h-1 bg-zinc-900 rounded-full overflow-hidden mx-auto">
                             <div id="loading-bar" class="w-0 h-full bg-indigo-500 transition-all duration-300"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap">
+            <!-- Notification Toast -->
+            <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap z-50">
                 <span id="toast-text">Ready</span>
             </div>
         </div>
@@ -251,7 +259,6 @@
                 
                 const isOpaque = (x, y) => {
                     if (state.shape === 'Rectangle') return true;
-                    // In Alpha and Curved mode, we respect the PNG transparency
                     if (x < 0 || x >= resW || y < 0 || y >= resH) return false;
                     return pixels[(y * resW + x) * 4 + 3] > 120;
                 };
@@ -259,7 +266,6 @@
                 const gridIndices = new Int32Array(resW * resH).fill(-1);
                 let vCount = 0;
 
-                // 1. Generate Vertices
                 for (let y = 0; y < resH; y++) {
                     for (let x = 0; x < resW; x++) {
                         if (isOpaque(x, y)) {
@@ -273,21 +279,15 @@
                             let posX, posY, posZ_F, posZ_B, posX_B;
 
                             if (state.shape === 'Curved') {
-                                // Warp horizontally around a cylinder
                                 const arcLength = state.width;
                                 const radius = state.curveRadius;
                                 const angle = (u - 0.5) * (arcLength / radius);
-                                
-                                // Front vertex (outer curve)
                                 posX = (radius + litThickness) * Math.sin(angle);
                                 posZ_F = (radius + litThickness) * Math.cos(angle) - radius;
                                 posY = (v - 0.5) * state.height;
-
-                                // Back vertex (inner curve)
                                 posX_B = radius * Math.sin(angle);
                                 posZ_B = radius * Math.cos(angle) - radius;
                             } else {
-                                // Standard Flat
                                 posX = (u - 0.5) * state.width;
                                 posY = (v - 0.5) * state.height;
                                 posZ_F = litThickness;
@@ -296,9 +296,8 @@
                             }
 
                             gridIndices[y * resW + x] = vCount;
-                            
-                            vertices.push(posX, posY, posZ_F); // Front vertex (idx*2)
-                            vertices.push(posX_B, posY, posZ_B); // Back vertex (idx*2 + 1)
+                            vertices.push(posX, posY, posZ_F);
+                            vertices.push(posX_B, posY, posZ_B);
                             vCount++;
                         }
                     }
@@ -306,15 +305,6 @@
 
                 lBar.style.width = '70%';
 
-                const isCellActive = (x, y) => {
-                    if (x < 0 || x >= resW - 1 || y < 0 || y >= resH - 1) return false;
-                    return gridIndices[y * resW + x] !== -1 &&
-                           gridIndices[y * resW + x + 1] !== -1 &&
-                           gridIndices[(y + 1) * resW + x] !== -1 &&
-                           gridIndices[(y + 1) * resW + x + 1] !== -1;
-                };
-
-                // 2. Stitching
                 for (let y = 0; y < resH - 1; y++) {
                     for (let x = 0; x < resW - 1; x++) {
                         const i00 = gridIndices[y * resW + x];
@@ -323,27 +313,24 @@
                         const i11 = gridIndices[(y + 1) * resW + x + 1];
 
                         if (i00 !== -1 && i10 !== -1 && i01 !== -1 && i11 !== -1) {
-                            // Front Surfaces
                             indices.push(i00 * 2, i01 * 2, i11 * 2);
                             indices.push(i00 * 2, i11 * 2, i10 * 2);
-                            // Back Surfaces
                             indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1);
                             indices.push(i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
 
-                            // Side Walls (Bridges between front and back surfaces at boundaries)
-                            if (!isOpaque(x, y - 1)) { // Top Edge
+                            if (!isOpaque(x, y - 1)) {
                                 indices.push(i00 * 2, i10 * 2, i10 * 2 + 1);
                                 indices.push(i00 * 2, i10 * 2 + 1, i00 * 2 + 1);
                             }
-                            if (!isOpaque(x, y + 1)) { // Bottom Edge
+                            if (!isOpaque(x, y + 1)) {
                                 indices.push(i11 * 2, i01 * 2, i01 * 2 + 1);
                                 indices.push(i11 * 2, i01 * 2 + 1, i11 * 2 + 1);
                             }
-                            if (!isOpaque(x - 1, y)) { // Left Edge
+                            if (!isOpaque(x - 1, y)) {
                                 indices.push(i01 * 2, i00 * 2, i00 * 2 + 1);
                                 indices.push(i01 * 2, i00 * 2 + 1, i01 * 2 + 1);
                             }
-                            if (!isOpaque(x + 1, y)) { // Right Edge
+                            if (!isOpaque(x + 1, y)) {
                                 indices.push(i10 * 2, i11 * 2, i11 * 2 + 1);
                                 indices.push(i10 * 2, i11 * 2 + 1, i10 * 2 + 1);
                             }
