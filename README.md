@@ -17,18 +17,24 @@
         .glass { background: rgba(10, 10, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        
+        /* High-visibility Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #050508; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f1f2e; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
         .control-label { font-size: 10px; font-weight: 900; color: #52525b; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .value-badge { font-family: monospace; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; }
         
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.02); }
         
-        /* Sidebar container fix */
-        .sidebar-container { height: 100%; display: flex; flex-direction: column; min-height: 0; }
-        .sidebar-scrollable { flex: 1; overflow-y: auto; min-height: 0; }
+        /* New Layout Engine for Sidebar Persistence */
+        aside { min-height: 0; flex-shrink: 0; }
+        .sidebar-inner { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+        .sidebar-content { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 20px; }
+        .sidebar-footer { flex-shrink: 0; background: #08080c; border-top: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -39,12 +45,397 @@
                 <i class="fas fa-train text-white text-lg md:text-xl"></i>
             </div>
             <div class="hidden sm:block">
-                <h1 class="text-lg md:text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Solid HD</span></h1>
-                <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
+                <h1 class="text-lg md:text-xl font-black tracking-tight text-white leading-none italic uppercase text-nowrap">LithoForge <span class="text-indigo-400 font-light">Solid HD</span></h1>
+                <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Custom Shop</p>
             </div>
         </div>
         <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-4 md:px-8 py-2 md:py-3 rounded-full transition-all font-black text-[10px] md:text-xs tracking-widest shadow-lg active:scale-95 shrink-0">
-            <i class="fas fa-save"></i> <span class="hidden xs:inline">SAVE STL</span><span class="inline xs:hidden">STL</span>
+            <i class="fas fa-save text-xs"></i> <span class="hidden xs:inline">SAVE STL</span><span class="inline xs:hidden text-[10px]">SAVE</span>
+        </button>
+    </header>
+
+    <main class="flex flex-col md:flex-row flex-1 min-height-0 overflow-hidden relative">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-80 bg-[#08080c] border-b md:border-b-0 md:border-r border-white/5 z-20 shadow-2xl flex flex-col h-[50dvh] md:h-full">
+            <div class="sidebar-inner">
+                <!-- Scrollable Settings Section -->
+                <div class="sidebar-content p-4 md:p-6 custom-scrollbar space-y-6 md:space-y-8">
+                    <!-- 1. Source -->
+                    <section>
+                        <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
+                        <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-32 md:h-40 overflow-hidden group">
+                            <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
+                                <i class="fas fa-upload text-2xl md:text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                                <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Upload WTIU Photo</span>
+                            </div>
+                            <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
+                            <input id="image-input" type="file" class="hidden" accept="image/*">
+                        </label>
+                    </section>
+
+                    <!-- 2. Profile -->
+                    <section>
+                        <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button data-shape="Alpha" class="shape-btn active px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
+                                <button data-shape="Rectangle" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
+                            </div>
+                            <button data-shape="Curved" class="shape-btn px-3 py-2.5 md:py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all text-nowrap">
+                                <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- 3. Settings -->
+                    <section class="space-y-6">
+                        <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <div class="control-label text-[9px]">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
+                                <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
+                                <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0">
+                            </div>
+
+                            <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1">
+                                <div class="control-label text-[9px]">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
+                                <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
+                                <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
+                            </div>
+
+                            <div>
+                                <div class="control-label text-[9px]">Detail Level <span id="res-val" class="value-badge">200px</span></div>
+                                <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span class="control-label italic text-[8px]">Width (mm)</span>
+                                    <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                </div>
+                                <div>
+                                    <span class="control-label italic text-[8px]">Height (mm)</span>
+                                    <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- Fixed (Sticky) Footer Button -->
+                <div class="sidebar-footer p-4 md:p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                    <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
+                        <i class="fas fa-hammer"></i> GENERATE
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Viewport -->
+        <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)] min-h-[200px] md:min-h-0">
+            <div id="canvas-container" class="w-full h-full"></div>
+            
+            <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
+                <div class="flex flex-col items-center gap-6 text-center p-6">
+                    <div class="w-16 h-16 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
+                    <div class="space-y-2">
+                        <p id="loading-text" class="font-bold text-white text-base md:text-lg tracking-widest uppercase italic leading-tight">Sculpting Solid Volume</p>
+                        <div class="w-40 md:w-48 h-1 bg-zinc-900 rounded-full overflow-hidden mx-auto">
+                            <div id="loading-bar" class="w-0 h-full bg-indigo-500 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap z-50">
+                <span id="toast-text">Ready</span>
+            </div>
+        </div>
+    </main>
+
+    <canvas id="hidden-canvas" class="hidden"></canvas>
+
+    <script>
+        // State
+        let state = {
+            image: null,
+            shape: 'Alpha',
+            maxThickness: 3.0,
+            baseThickness: 1.0,
+            curveRadius: 100,
+            resolution: 200,
+            smoothing: 1.5,
+            width: 100,
+            height: 100
+        };
+
+        let scene, camera, renderer, controls, mesh;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
+            camera.position.set(0, -180, 180);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            mainLight.position.set(50, 50, 300);
+            scene.add(mainLight);
+
+            const grid = new THREE.GridHelper(400, 40, 0x1a1a2e, 0x111111);
+            grid.rotation.x = Math.PI / 2;
+            scene.add(grid);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (controls) controls.update();
+                if (renderer && scene && camera) renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                if (!container || !camera || !renderer) return;
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                state.image = ev.target.result;
+                const preview = document.getElementById('img-preview');
+                const placeholder = document.getElementById('upload-placeholder');
+                const renderBtn = document.getElementById('render-btn');
+                if (preview) { preview.src = ev.target.result; preview.classList.remove('hidden'); }
+                if (placeholder) placeholder.classList.add('hidden');
+                if (renderBtn) renderBtn.disabled = false;
+                showToast("Image Traced");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function processImage() {
+            if (!state.image) return;
+            
+            const loading = document.getElementById('loading-overlay');
+            const lText = document.getElementById('loading-text');
+            const lBar = document.getElementById('loading-bar');
+            loading.classList.remove('hidden');
+
+            try {
+                lBar.style.width = '20%';
+                const img = new Image();
+                img.src = state.image;
+                await new Promise((res) => img.onload = res);
+
+                const canvas = document.getElementById('hidden-canvas');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                const resW = state.resolution;
+                const resH = Math.round(state.resolution * (img.height / img.width));
+                
+                canvas.width = resW;
+                canvas.height = resH;
+                if (state.smoothing > 0) ctx.filter = `blur(${state.smoothing}px)`;
+                ctx.drawImage(img, 0, 0, resW, resH);
+                const pixels = ctx.getImageData(0, 0, resW, resH).data;
+
+                lBar.style.width = '40%';
+                lText.innerText = "Stitching Solid Volume...";
+
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                const indices = [];
+                
+                const isOpaque = (x, y) => {
+                    if (state.shape === 'Rectangle') return true;
+                    if (x < 0 || x >= resW || y < 0 || y >= resH) return false;
+                    return pixels[(y * resW + x) * 4 + 3] > 120;
+                };
+
+                const gridIndices = new Int32Array(resW * resH).fill(-1);
+                let vCount = 0;
+
+                for (let y = 0; y < resH; y++) {
+                    for (let x = 0; x < resW; x++) {
+                        if (isOpaque(x, y)) {
+                            const u = x / (resW - 1);
+                            const v = 1 - (y / (resH - 1));
+                            
+                            const idx = (y * resW + x) * 4;
+                            const brightness = (0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2]) / 255;
+                            const litThickness = (1 - brightness) * state.maxThickness + state.baseThickness;
+
+                            let posX, posY, posZ_F, posZ_B, posX_B;
+
+                            if (state.shape === 'Curved') {
+                                const arcLength = state.width;
+                                const radius = state.curveRadius;
+                                const angle = (u - 0.5) * (arcLength / radius);
+                                posX = (radius + litThickness) * Math.sin(angle);
+                                posZ_F = (radius + litThickness) * Math.cos(angle) - radius;
+                                posY = (v - 0.5) * state.height;
+                                posX_B = radius * Math.sin(angle);
+                                posZ_B = radius * Math.cos(angle) - radius;
+                            } else {
+                                posX = (u - 0.5) * state.width;
+                                posY = (v - 0.5) * state.height;
+                                posZ_F = litThickness;
+                                posX_B = posX;
+                                posZ_B = 0;
+                            }
+
+                            gridIndices[y * resW + x] = vCount;
+                            vertices.push(posX, posY, posZ_F);
+                            vertices.push(posX_B, posY, posZ_B);
+                            vCount++;
+                        }
+                    }
+                }
+
+                lBar.style.width = '70%';
+
+                for (let y = 0; y < resH - 1; y++) {
+                    for (let x = 0; x < resW - 1; x++) {
+                        const i00 = gridIndices[y * resW + x];
+                        const i10 = gridIndices[y * resW + x + 1];
+                        const i01 = gridIndices[(y + 1) * resW + x];
+                        const i11 = gridIndices[(y + 1) * resW + x + 1];
+
+                        if (i00 !== -1 && i10 !== -1 && i01 !== -1 && i11 !== -1) {
+                            indices.push(i00 * 2, i01 * 2, i11 * 2);
+                            indices.push(i00 * 2, i11 * 2, i10 * 2);
+                            indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1);
+                            indices.push(i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
+
+                            if (!isOpaque(x, y - 1)) {
+                                indices.push(i00 * 2, i10 * 2, i10 * 2 + 1);
+                                indices.push(i00 * 2, i10 * 2 + 1, i00 * 2 + 1);
+                            }
+                            if (!isOpaque(x, y + 1)) {
+                                indices.push(i11 * 2, i01 * 2, i01 * 2 + 1);
+                                indices.push(i11 * 2, i01 * 2 + 1, i11 * 2 + 1);
+                            }
+                            if (!isOpaque(x - 1, y)) {
+                                indices.push(i01 * 2, i00 * 2, i00 * 2 + 1);
+                                indices.push(i01 * 2, i00 * 2 + 1, i01 * 2 + 1);
+                            }
+                            if (!isOpaque(x + 1, y)) {
+                                indices.push(i10 * 2, i11 * 2, i11 * 2 + 1);
+                                indices.push(i10 * 2, i11 * 2 + 1, i10 * 2 + 1);
+                            }
+                        }
+                    }
+                }
+                
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+
+                if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide, shininess: 30 }));
+                scene.add(mesh);
+                
+                document.getElementById('export-btn').disabled = false;
+                showToast("Solid Manifold Ready");
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setTimeout(() => loading.classList.add('hidden'), 300);
+            }
+        }
+
+        function exportSTL() {
+            if (!mesh) return;
+            const exporter = new THREE.STLExporter();
+            const binaryData = exporter.parse(mesh, { binary: true });
+            const blob = new Blob([binaryData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `WTIU_Solid_Layout_${Math.floor(Date.now()/1000)}.stl`;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 2000);
+            showToast("STL Saved");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+            toastText.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function setupUI() {
+            init();
+            const elements = [
+                'image-input', 'drop-zone', 'max-thick', 'max-thick-val', 
+                'base-thick', 'base-thick-val', 'smooth-slider', 'smooth-val',
+                'res-slider', 'res-val', 'model-width', 'model-height',
+                'render-btn', 'export-btn', 'img-preview', 'upload-placeholder',
+                'curve-control', 'curve-radius', 'curve-radius-val'
+            ];
+            const el = {};
+            elements.forEach(id => el[id] = document.getElementById(id));
+
+            el['image-input'].addEventListener('change', (e) => handleFile(e.target.files[0]));
+            el['drop-zone'].addEventListener('dragover', (e) => { e.preventDefault(); el['drop-zone'].classList.add('drag-over'); });
+            el['drop-zone'].addEventListener('dragleave', () => el['drop-zone'].classList.remove('drag-over'));
+            el['drop-zone'].addEventListener('drop', (e) => { e.preventDefault(); el['drop-zone'].classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.shape = btn.dataset.shape;
+                    
+                    if (state.shape === 'Curved') {
+                        el['curve-control'].classList.remove('hidden');
+                    } else {
+                        el['curve-control'].classList.add('hidden');
+                    }
+                };
+            });
+
+            el['max-thick'].oninput = (e) => { state.maxThickness = parseFloat(e.target.value); el['max-thick-val'].innerText = state.maxThickness.toFixed(1) + 'mm'; };
+            el['base-thick'].oninput = (e) => { state.baseThickness = parseFloat(e.target.value); el['base-thick-val'].innerText = state.baseThickness.toFixed(1) + 'mm'; };
+            el['curve-radius'].oninput = (e) => { state.curveRadius = parseFloat(e.target.value); el['curve-radius-val'].innerText = state.curveRadius + 'mm'; };
+            el['smooth-slider'].oninput = (e) => { state.smoothing = parseFloat(e.target.value); el['smooth-val'].innerText = state.smoothing.toFixed(1) + 'px'; };
+            el['res-slider'].oninput = (e) => { state.resolution = parseInt(e.target.value); el['res-val'].innerText = state.resolution + 'px'; };
+            el['model-width'].onchange = (e) => state.width = parseFloat(e.target.value) || 100;
+            el['model-height'].onchange = (e) => state.height = parseFloat(e.target.value) || 100;
+            el['render-btn'].onclick = processImage;
+            el['export-btn'].onclick = exportSTL;
+        }
+
+        document.addEventListener('DOMContentLoaded', setupUI);
+    </script>
+</body>
+</html>            <i class="fas fa-save"></i> <span class="hidden xs:inline">SAVE STL</span><span class="inline xs:hidden">STL</span>
         </button>
     </header>
 
