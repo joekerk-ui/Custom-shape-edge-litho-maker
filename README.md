@@ -17,7 +17,7 @@
         .glass { background: rgba(10, 10, 18, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; margin: 0; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; }
-        .toggle-btn.active { background-color: #10b981; border-color: #34d399; color: white; }
+        .toggle-btn.active { background-color: #10b981; border-color: #34d399; color: white; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
         .control-label { font-size: 8px; font-weight: 800; color: #71717a; text-transform: uppercase; letter-spacing: 0.02em; display: flex; justify-content: space-between; line-height: 1; margin-bottom: 2px; }
         .value-badge { font-family: monospace; color: #a5b4fc; font-size: 8px; }
         .setting-card { background: rgba(255, 255, 255, 0.02); border-radius: 6px; padding: 4px 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
@@ -46,7 +46,7 @@
     <main class="flex flex-1 overflow-hidden relative">
         <aside class="w-[var(--sidebar-w)] bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shrink-0 p-2 gap-2 overflow-hidden">
             
-            <!-- 1. Source Image (Micro) -->
+            <!-- 1. Source Image -->
             <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-lg p-1.5 transition-all flex flex-col items-center justify-center cursor-pointer h-16 shrink-0 group">
                 <div id="upload-placeholder" class="flex flex-col items-center pointer-events-none">
                     <i class="fas fa-cloud-upload-alt text-lg text-zinc-700 group-hover:text-indigo-500"></i>
@@ -56,7 +56,7 @@
                 <input id="image-input" type="file" class="hidden" accept="image/*">
             </label>
 
-            <!-- 2. Shape Buttons & Toggle -->
+            <!-- 2. Profile Selection -->
             <div class="flex flex-col gap-1 shrink-0">
                 <div class="grid grid-cols-3 gap-1">
                     <button data-shape="Alpha" class="shape-btn active py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Edge</button>
@@ -64,11 +64,11 @@
                     <button data-shape="Curved" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Curve</button>
                 </div>
                 <button id="nightlight-toggle" class="toggle-btn w-full py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500 transition-colors">
-                    <i class="fas fa-plug mr-1"></i> Add Nightlight Mount
+                    <i class="fas fa-plug mr-1"></i> Add C-Clip Mount
                 </button>
             </div>
 
-            <!-- 3. Mesh Grid (Compact) -->
+            <!-- 3. Mesh Grid -->
             <div class="flex flex-col gap-1.5 overflow-hidden">
                 <div class="grid grid-cols-2 gap-1.5">
                     <div class="setting-card">
@@ -238,7 +238,6 @@
                 const gridIndices = new Int32Array(resW * resH).fill(-1);
                 let vCount = 0;
 
-                // Function to handle position calculation including Curved warping
                 const calcPos = (uu, vv, zz) => {
                     if (state.shape === 'Curved') {
                         const r = state.curveRadius + zz;
@@ -282,7 +281,6 @@
                             indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1, i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
                         }
 
-                        // Walls
                         const checkWall = (nx, ny, va, vb) => {
                             if ((nx < 0 || nx >= resW || ny < 0 || ny >= resH) || gridIndices[ny * resW + nx] === -1) {
                                 indices.push(va * 2, va * 2 + 1, vb * 2 + 1, va * 2, vb * 2 + 1, vb * 2);
@@ -293,48 +291,102 @@
                     }
                 }
 
-                // 3. Optional Nightlight Mount (25mm wide, 15mm deep)
+                // 3. Shape-Matching C-Clip Nightlight Mount
                 if (state.nightlight) {
-                    const mountW = 25;
-                    const mountD = 15;
-                    const mountT = 2.5; // Thickness of the mount
+                    const innerR = 11; // 22mm diameter standard bulb base
+                    const outerR = 15; // 30mm outer diameter clip
+                    const mountT = 3.0; // Thick clip for strength
                     const startV = vCount;
-
-                    // Mount position relative to the bottom center
                     const centerU = 0.5;
-                    const bottomV = 0.0; // bottom of the model
+                    const bottomV = 0.0; 
                     
-                    // Calculation for mount vertices
-                    const corners = [
-                        [-mountW/2, 0], [mountW/2, 0], 
-                        [mountW/2, -mountD], [-mountW/2, -mountD]
-                    ];
+                    // Resolution of the clip circle
+                    const segments = 24;
+                    const gapAngle = Math.PI * 0.55; // Opening for snapping (approx 100 degrees)
+                    const totalSweep = (Math.PI * 2) - gapAngle;
+                    const startAngle = (Math.PI / 2) + (gapAngle / 2);
 
-                    // Generate vertices for the mounting tab (top and bottom faces)
-                    corners.forEach(c => {
-                        const [lx, ly] = c;
-                        // Transform relative coordinates into model space
-                        const u_off = centerU + (lx / state.width);
-                        const v_off = bottomV + (ly / state.height);
+                    // Add a connecting bridge from model to clip
+                    const bridgeW = 10;
+                    const bridgeL = 6;
+                    
+                    // Generate clip vertices
+                    for (let i = 0; i <= segments; i++) {
+                        const angle = startAngle + (i / segments) * totalSweep;
+                        const u_off = centerU + (Math.sin(angle) * outerR / state.width);
+                        const v_off = bottomV - ((bridgeL + (Math.cos(angle) * outerR)) / state.height);
                         
-                        const pTop = calcPos(u_off, v_off, mountT);
-                        const pBottom = calcPos(u_off, v_off, 0);
+                        // We project these points into the model's coordinate system
+                        // Bridge connector
+                        const cx = Math.sin(angle);
+                        const cy = Math.cos(angle);
                         
-                        vertices.push(...pTop, ...pBottom);
+                        // Vertical offset for the clip
+                        const clipYOffset = -bridgeL;
+
+                        // Create two points: inner and outer radius
+                        const pInner = calcPos(centerU + (cx * innerR / state.width), bottomV + (clipYOffset + cy * innerR) / state.height, mountT);
+                        const pOuter = calcPos(centerU + (cx * outerR / state.width), bottomV + (clipYOffset + cy * outerR) / state.height, mountT);
+                        const pInnerB = calcPos(centerU + (cx * innerR / state.width), bottomV + (clipYOffset + cy * innerR) / state.height, 0);
+                        const pOuterB = calcPos(centerU + (cx * outerR / state.width), bottomV + (clipYOffset + cy * outerR) / state.height, 0);
+
+                        vertices.push(...pInner, ...pOuter, ...pInnerB, ...pOuterB);
+                    }
+
+                    // Add Bridge Vertices (connecting bottom center of model to top of clip)
+                    const bridgeStartV = startV + (segments + 1) * 2;
+                    const bw = bridgeW / 2;
+                    const bl = bridgeL;
+                    const b_points = [
+                        [-bw, 0], [bw, 0], [bw, -bl], [-bw, -bl]
+                    ];
+                    b_points.forEach(bp => {
+                        const vTop = calcPos(centerU + bp[0]/state.width, bottomV + bp[1]/state.height, mountT);
+                        const vBot = calcPos(centerU + bp[0]/state.width, bottomV + bp[1]/state.height, 0);
+                        vertices.push(...vTop, ...vBot);
                     });
 
-                    // Stitch mount faces (indices are relative to startV)
-                    // Top (0, 1, 2, 3), Bottom (4, 5, 6, 7) - each multiplied by 2 for the offset
-                    const m = startV * 2;
-                    indices.push(m, m+2, m+4, m, m+4, m+6); // Top face
-                    indices.push(m+1, m+5, m+3, m+1, m+7, m+5); // Bottom face
-                    
-                    // Side walls for the mount
-                    const pairs = [[0,1], [1,2], [2,3], [3,0]];
-                    pairs.forEach(p => {
-                        const a = m + p[0]*2;
-                        const b = m + p[1]*2;
-                        indices.push(a, a+1, b+1, a, b+1, b);
+                    // Stitch Clip Surfaces
+                    const mOffset = startV * 4; 
+                    for (let i = 0; i < segments; i++) {
+                        const base = startV + i * 2;
+                        const next = startV + (i + 1) * 2;
+                        // Each step has 4 vertices: innerTop, outerTop, innerBot, outerBot (indices * 2 because of dual layer)
+                        // This manual indexing is tricky with the existing dual-layer setup
+                        // Let's simplify: 4 vertices per angle step: [0: IT, 1: OT, 2: IB, 3: OB]
+                        const v_base = (startV + i * 2) * 2;
+                        const v_next = (startV + (i + 1) * 2) * 2;
+
+                        // Top surface
+                        indices.push(v_base, v_next, v_next + 2);
+                        indices.push(v_base, v_next + 2, v_base + 2);
+                        // Bottom surface
+                        indices.push(v_base + 1, v_next + 3, v_next + 1);
+                        indices.push(v_base + 1, v_base + 3, v_next + 3);
+                        // Inner wall
+                        indices.push(v_base, v_base + 1, v_next + 1);
+                        indices.push(v_base, v_next + 1, v_next);
+                        // Outer wall
+                        indices.push(v_base + 2, v_next + 2, v_next + 3);
+                        indices.push(v_base + 2, v_next + 3, v_base + 3);
+                    }
+                    // End caps for C-clip
+                    const v_start = startV * 2;
+                    const v_end = (startV + segments * 2) * 2;
+                    indices.push(v_start, v_start + 2, v_start + 3, v_start, v_start + 3, v_start + 1);
+                    indices.push(v_end, v_end + 1, v_end + 3, v_end, v_end + 3, v_end + 2);
+
+                    // Stitch Bridge
+                    const b = bridgeStartV * 2;
+                    // Top/Bottom faces
+                    indices.push(b, b+2, b+4, b, b+4, b+6);
+                    indices.push(b+1, b+5, b+3, b+1, b+7, b+5);
+                    // Sides
+                    const b_pairs = [[0,1], [1,2], [2,3], [3,0]];
+                    b_pairs.forEach(p => {
+                        const v1 = b + p[0]*2;
+                        const v2 = b + p[1]*2;
+                        indices.push(v1, v1+1, v2+1, v1, v2+1, v2);
                     });
                 }
                 
@@ -356,7 +408,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `WTIU_Nightlight_${Date.now()}.stl`;
+            link.download = `WTIU_Nightlight_Clip_${Date.now()}.stl`;
             link.click();
             URL.revokeObjectURL(url);
         }
@@ -409,7 +461,7 @@
             el.nightlightBtn.onclick = () => {
                 state.nightlight = !state.nightlight;
                 el.nightlightBtn.classList.toggle('active', state.nightlight);
-                showToast(state.nightlight ? "Nightlight Mount Enabled" : "Mount Disabled");
+                showToast(state.nightlight ? "C-Clip Mount Enabled" : "Mount Disabled");
             };
 
             el.maxThick.oninput = (e) => { state.maxThickness = parseFloat(e.target.value); el.maxThickVal.innerText = state.maxThickness.toFixed(1) + 'mm'; };
