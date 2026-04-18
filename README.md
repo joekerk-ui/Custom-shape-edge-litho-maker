@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Using JSDelivr for maximum reliability on GitHub Pages and sandboxed environments -->
+    <!-- Using JSDelivr for maximum reliability -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
@@ -18,69 +18,75 @@
         input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 15px rgba(79, 70, 229, 0.4); }
         
-        /* High-Visibility Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f51; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
         
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
-        .control-label { font-size: 10px; font-weight: 900; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+        .control-label { font-size: 10px; font-weight: 900; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
         .value-badge { font-family: monospace; color: #a5b4fc; background: rgba(99, 102, 241, 0.1); padding: 1px 5px; border-radius: 3px; font-size: 10px; }
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.01); }
     </style>
 </head>
 <body>
 
-    <header class="h-14 px-5 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
-        <div class="flex items-center gap-2.5">
+    <header class="h-16 px-5 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
+        <div class="flex items-center gap-3">
             <div class="bg-indigo-600 p-1.5 rounded-lg shadow-[0_0_15px_rgba(79,70,229,0.3)]">
-                <i class="fas fa-train text-white text-lg"></i>
+                <i class="fas fa-train text-white text-xl"></i>
             </div>
-            <div>
-                <h1 class="text-lg font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
-                <p class="text-[8px] text-zinc-500 font-mono mt-0.5 uppercase tracking-widest text-nowrap font-bold">WTIU (MTH) O-Scale Solid Mesh Engine</p>
+            <div class="hidden sm:block">
+                <h1 class="text-base font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
+                <p class="text-[8px] text-zinc-500 font-mono mt-0.5 uppercase tracking-widest text-nowrap font-bold">WTIU O-Scale Engine</p>
             </div>
         </div>
-        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-6 py-2 rounded-full transition-all font-black text-[10px] tracking-widest shadow-lg active:scale-95 uppercase">
-            <i class="fas fa-save"></i> Export STL
-        </button>
+        
+        <div class="flex items-center gap-2">
+            <button id="render-btn" disabled class="flex items-center gap-2 bg-zinc-100 hover:bg-white disabled:opacity-20 text-black px-4 sm:px-6 py-2 rounded-full transition-all font-black text-[10px] tracking-widest shadow-lg active:scale-95 uppercase">
+                <i class="fas fa-hammer"></i> <span class="hidden xs:inline">Generate</span>
+            </button>
+            <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-4 sm:px-6 py-2 rounded-full transition-all font-black text-[10px] tracking-widest shadow-lg active:scale-95 uppercase">
+                <i class="fas fa-save"></i> <span class="hidden xs:inline">Export STL</span>
+            </button>
+        </div>
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
         <!-- Compact Sidebar -->
-        <aside class="w-72 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shadow-2xl shrink-0">
-            
-            <!-- Scrollable Settings -->
+        <aside class="w-64 sm:w-72 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shadow-2xl shrink-0">
             <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar min-h-0">
+                
+                <!-- 1. Source Image -->
                 <section>
-                    <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
-                    <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-xl p-3 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer h-32 overflow-hidden group">
+                    <div class="control-label"><span>1. Source Image</span> <i class="fas fa-image"></i></div>
+                    <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-xl p-3 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer h-28 overflow-hidden group">
                         <div id="upload-placeholder" class="flex flex-col items-center gap-1 group-hover:scale-105 transition-transform text-center pointer-events-none">
-                            <i class="fas fa-upload text-2xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
-                            <span class="text-[9px] text-zinc-500 font-bold uppercase">Drag WTIU / MTH Photo</span>
-                            <span class="text-[7px] text-zinc-600 italic uppercase">Tracing edges...</span>
+                            <i class="fas fa-upload text-xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                            <span class="text-[9px] text-zinc-500 font-bold uppercase">Drag WTIU Photo</span>
                         </div>
                         <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
                         <input id="image-input" type="file" class="hidden" accept="image/*">
                     </label>
                 </section>
 
+                <!-- 2. Geometry Type -->
                 <section>
-                    <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
+                    <div class="control-label"><span>2. Profile</span> <i class="fas fa-shapes"></i></div>
                     <div class="grid grid-cols-1 gap-1.5">
                         <div class="grid grid-cols-2 gap-1.5">
-                            <button data-shape="Alpha" class="shape-btn active py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
-                            <button data-shape="Rectangle" class="shape-btn py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
+                            <button data-shape="Alpha" class="shape-btn active py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact</button>
+                            <button data-shape="Rectangle" class="shape-btn py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rect</button>
                         </div>
                         <button data-shape="Curved" class="shape-btn py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">
-                            <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
+                            <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved Wrap
                         </button>
                     </div>
                 </section>
 
+                <!-- 3. Mesh Settings -->
                 <section class="space-y-4">
-                    <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
+                    <div class="control-label"><span>3. Details</span> <i class="fas fa-sliders-h"></i></div>
                     
                     <div class="space-y-4">
                         <div>
@@ -106,11 +112,11 @@
                         </div>
 
                         <div>
-                            <div class="control-label text-zinc-400">Detail Level <span id="res-val" class="value-badge">200px</span></div>
+                            <div class="control-label text-zinc-400">Resolution <span id="res-val" class="value-badge">200px</span></div>
                             <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 pb-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <span class="control-label italic text-zinc-500">Width (mm)</span>
                                 <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 text-[10px] text-indigo-300 focus:outline-none">
@@ -122,13 +128,10 @@
                         </div>
                     </div>
                 </section>
-            </div>
-
-            <!-- Pinned Bottom Action Button -->
-            <div class="p-4 border-t border-white/5 bg-zinc-950/80 shrink-0">
-                <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] transition-all shadow-xl active:scale-95">
-                    <i class="fas fa-hammer"></i> Generate Solid
-                </button>
+                
+                <div class="pt-4 opacity-20 text-[7px] text-center font-bold uppercase tracking-widest pointer-events-none">
+                    Scroll for more settings
+                </div>
             </div>
         </aside>
 
@@ -136,7 +139,6 @@
         <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)]">
             <div id="canvas-container" class="w-full h-full"></div>
             
-            <!-- Loading Indicator -->
             <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
                 <div class="flex flex-col items-center gap-4 text-center">
                     <div class="w-12 h-12 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
@@ -177,9 +179,7 @@
             const container = document.getElementById('canvas-container');
             if (!container) return;
 
-            // Library Availability Check
             if (typeof THREE === 'undefined' || !THREE.OrbitControls || !THREE.STLExporter) {
-                console.warn("Retrying engine initialization...");
                 setTimeout(initEngine, 500);
                 return;
             }
@@ -240,7 +240,6 @@
 
         async function processImage() {
             if (!state.image) return;
-            
             const loading = document.getElementById('loading-overlay');
             const lText = document.getElementById('loading-text');
             const lBar = document.getElementById('loading-bar');
@@ -284,7 +283,6 @@
                         if (isOpaque(x, y)) {
                             const u = x / (resW - 1);
                             const v = 1 - (y / (resH - 1));
-                            
                             const idx = (y * resW + x) * 4;
                             const bri = (0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2]) / 255;
                             const frontZ = (1 - bri) * state.maxThickness + state.baseThickness;
@@ -301,10 +299,8 @@
 
                             const fp = calcPos(u, v, frontZ);
                             const bp = calcPos(u, v, backZ);
-
                             gridIndices[y * resW + x] = vCount;
-                            vertices.push(...fp); // Index vCount*2
-                            vertices.push(...bp); // Index vCount*2+1
+                            vertices.push(...fp, ...bp);
                             vCount++;
                         }
                     }
@@ -316,30 +312,26 @@
                     for (let x = 0; x < resW; x++) {
                         const i00 = gridIndices[y * resW + x];
                         if (i00 === -1) continue;
-
                         const i10 = (x < resW - 1) ? gridIndices[y * resW + (x + 1)] : -1;
                         const i01 = (y < resH - 1) ? gridIndices[(y + 1) * resW + x] : -1;
                         const i11 = (x < resW - 1 && y < resH - 1) ? gridIndices[(y + 1) * resW + (x + 1)] : -1;
 
                         if (i10 !== -1 && i01 !== -1 && i11 !== -1) {
-                            indices.push(i00 * 2, i01 * 2, i11 * 2);
-                            indices.push(i00 * 2, i11 * 2, i10 * 2);
-                            indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1);
-                            indices.push(i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
+                            indices.push(i00 * 2, i01 * 2, i11 * 2, i00 * 2, i11 * 2, i10 * 2);
+                            indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1, i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
                         }
 
                         const checkWall = (nx, ny, va, vb) => {
                             const other = (nx < 0 || nx >= resW || ny < 0 || ny >= resH) ? -1 : gridIndices[ny * resW + nx];
                             if (other === -1) {
-                                indices.push(va * 2, va * 2 + 1, vb * 2 + 1);
-                                indices.push(va * 2, vb * 2 + 1, vb * 2);
+                                indices.push(va * 2, va * 2 + 1, vb * 2 + 1, va * 2, vb * 2 + 1, vb * 2);
                             }
                         };
 
-                        if (i10 !== -1) checkWall(x, y - 1, i10, i00); // Top
-                        if (i10 !== -1) checkWall(x, y + 1, i00, i10); // Bottom
-                        if (i01 !== -1) checkWall(x - 1, y, i00, i01); // Left
-                        if (i01 !== -1) checkWall(x + 1, y, i01, i00); // Right
+                        if (i10 !== -1) checkWall(x, y - 1, i10, i00);
+                        if (i10 !== -1) checkWall(x, y + 1, i00, i10);
+                        if (i01 !== -1) checkWall(x - 1, y, i00, i01);
+                        if (i01 !== -1) checkWall(x + 1, y, i01, i00);
                     }
                 }
                 
@@ -350,14 +342,9 @@
                 if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
                 mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide, shininess: 30 }));
                 scene.add(mesh);
-                
                 document.getElementById('export-btn').disabled = false;
                 showToast("Solid Generated");
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setTimeout(() => loading.classList.add('hidden'), 300);
-            }
+            } catch (err) { console.error(err); } finally { setTimeout(() => loading.classList.add('hidden'), 300); }
         }
 
         function exportSTL() {
