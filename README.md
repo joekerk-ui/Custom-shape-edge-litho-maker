@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LithoForge Ultra HD - Compact Solid Maker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,61 +12,60 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
 
     <style>
-        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .glass { background: rgba(10, 10, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; margin-top: 2px; }
+        :root { --sidebar-w: 240px; --header-h: 44px; }
+        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; margin: 0; }
+        .glass { background: rgba(10, 10, 18, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; margin: 0; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; }
-        
+        .control-label { font-size: 8px; font-weight: 800; color: #71717a; text-transform: uppercase; letter-spacing: 0.02em; display: flex; justify-content: space-between; line-height: 1; margin-bottom: 2px; }
+        .value-badge { font-family: monospace; color: #a5b4fc; font-size: 8px; }
+        .setting-card { background: rgba(255, 255, 255, 0.02); border-radius: 6px; padding: 4px 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
-        .control-label { font-size: 9px; font-weight: 800; color: #71717a; text-transform: uppercase; letter-spacing: 0.02em; display: flex; justify-content: space-between; }
-        .value-badge { font-family: monospace; color: #a5b4fc; font-size: 9px; }
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); }
-        
-        /* Dense spacing overrides */
-        .setting-card { background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
     </style>
 </head>
 <body>
 
-    <header class="h-12 px-4 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
+    <header class="h-[var(--header-h)] px-4 glass z-40 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2">
-            <i class="fas fa-train text-indigo-500 text-lg"></i>
-            <h1 class="text-xs font-black tracking-tighter text-white uppercase italic">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
+            <i class="fas fa-train text-indigo-500 text-base"></i>
+            <h1 class="text-[10px] font-black tracking-tighter text-white uppercase italic">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
         </div>
         
         <div class="flex items-center gap-2">
-            <button id="render-btn" disabled class="bg-zinc-100 hover:bg-white disabled:opacity-20 text-black px-4 py-1.5 rounded-md transition-all font-black text-[9px] uppercase tracking-wider active:scale-95">
+            <button id="render-btn" disabled class="bg-zinc-100 hover:bg-white disabled:opacity-10 text-black px-3 py-1.5 rounded transition-all font-black text-[9px] uppercase tracking-wider active:scale-95">
                 <i class="fas fa-hammer mr-1"></i> Generate
             </button>
-            <button id="export-btn" disabled class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-4 py-1.5 rounded-md transition-all font-black text-[9px] uppercase tracking-wider active:scale-95">
-                <i class="fas fa-save mr-1"></i> Export STL
+            <button id="export-btn" disabled class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-10 text-white px-3 py-1.5 rounded transition-all font-black text-[9px] uppercase tracking-wider active:scale-95">
+                <i class="fas fa-save mr-1"></i> Export
             </button>
         </div>
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
-        <aside class="w-64 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shrink-0 p-3 gap-3 overflow-hidden">
+        <!-- Micro Sidebar -->
+        <aside class="w-[var(--sidebar-w)] bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shrink-0 p-2 gap-2 overflow-hidden">
             
-            <!-- 1. Source Image -->
-            <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-lg p-2 transition-all flex flex-col items-center justify-center cursor-pointer h-20 shrink-0 group">
+            <!-- 1. Source Image (Micro) -->
+            <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-lg p-1.5 transition-all flex flex-col items-center justify-center cursor-pointer h-16 shrink-0 group">
                 <div id="upload-placeholder" class="flex flex-col items-center pointer-events-none">
-                    <i class="fas fa-upload text-lg text-zinc-700 group-hover:text-indigo-500 mb-1"></i>
-                    <span class="text-[8px] text-zinc-500 font-bold uppercase">Drag WTIU / MTH PNG</span>
+                    <i class="fas fa-cloud-upload-alt text-lg text-zinc-700 group-hover:text-indigo-500"></i>
+                    <span class="text-[8px] text-zinc-500 font-bold uppercase">WTIU PNG / JPG</span>
                 </div>
                 <img id="img-preview" class="hidden w-full h-full object-contain rounded" alt="Preview">
                 <input id="image-input" type="file" class="hidden" accept="image/*">
             </label>
 
-            <!-- 2. Profile Selection -->
+            <!-- 2. Shape Buttons -->
             <div class="grid grid-cols-3 gap-1 shrink-0">
-                <button data-shape="Alpha" class="shape-btn active py-1.5 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Edge</button>
-                <button data-shape="Rectangle" class="shape-btn py-1.5 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Rect</button>
-                <button data-shape="Curved" class="shape-btn py-1.5 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Curve</button>
+                <button data-shape="Alpha" class="shape-btn active py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Edge</button>
+                <button data-shape="Rectangle" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Rect</button>
+                <button data-shape="Curved" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Curve</button>
             </div>
 
-            <!-- 3. Dense Grid Settings -->
-            <div class="grid grid-cols-1 gap-2 overflow-hidden">
-                <div class="grid grid-cols-2 gap-2">
+            <!-- 3. Mesh Grid (Compact) -->
+            <div class="flex flex-col gap-1.5 overflow-hidden">
+                <div class="grid grid-cols-2 gap-1.5">
                     <div class="setting-card">
                         <div class="control-label">Base <span id="base-thick-val" class="value-badge">1.0mm</span></div>
                         <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
@@ -82,7 +81,7 @@
                     <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-1.5">
                     <div class="setting-card">
                         <div class="control-label">Smooth <span id="smooth-val" class="value-badge">1.5px</span></div>
                         <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
@@ -93,33 +92,33 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-1.5">
                     <div class="setting-card">
                         <span class="control-label italic">Width (mm)</span>
-                        <input id="model-width" type="number" value="100" class="w-full bg-zinc-950 border border-zinc-800 rounded p-1 text-[9px] text-indigo-300 outline-none">
+                        <input id="model-width" type="number" value="100" class="w-full bg-black border border-zinc-800 rounded px-1 py-0.5 text-[9px] text-indigo-300 outline-none">
                     </div>
                     <div class="setting-card">
                         <span class="control-label italic">Height (mm)</span>
-                        <input id="model-height" type="number" value="100" class="w-full bg-zinc-950 border border-zinc-800 rounded p-1 text-[9px] text-indigo-300 outline-none">
+                        <input id="model-height" type="number" value="100" class="w-full bg-black border border-zinc-800 rounded px-1 py-0.5 text-[9px] text-indigo-300 outline-none">
                     </div>
                 </div>
             </div>
 
-            <div class="mt-auto opacity-30 text-[7px] text-center uppercase tracking-widest font-bold">WTIU Shop v4.2</div>
+            <div class="mt-auto border-t border-white/5 pt-1 opacity-20 text-[7px] text-center uppercase tracking-tighter">WTIU Shop Engine</div>
         </aside>
 
         <!-- Viewport Area -->
         <div class="flex-1 relative bg-[#050508]">
             <div id="canvas-container" class="w-full h-full"></div>
             
-            <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
-                <div class="flex flex-col items-center gap-2 text-center">
-                    <div class="w-8 h-8 rounded-full border-2 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
-                    <p id="loading-text" class="font-bold text-white text-[9px] tracking-widest uppercase italic">Processing Mesh</p>
+            <div id="loading-overlay" class="hidden absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-6 h-6 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p class="text-white text-[8px] font-bold uppercase tracking-widest">Processing...</p>
                 </div>
             </div>
 
-            <div id="toast" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-[8px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none">
+            <div id="toast" class="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-[7px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none">
                 <span id="toast-text">Ready</span>
             </div>
         </div>
@@ -150,31 +149,39 @@
                 return;
             }
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 10000);
-            camera.position.set(0, -200, 200);
+            camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 10000);
+            camera.position.set(0, -250, 200);
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
+            
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
             const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
             mainLight.position.set(50, 50, 500);
             scene.add(mainLight);
+            
             const grid = new THREE.GridHelper(500, 50, 0x1a1a2e, 0x111111);
             grid.rotation.x = Math.PI / 2;
             scene.add(grid);
+            
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            
             function animate() {
                 requestAnimationFrame(animate);
                 if (controls) controls.update();
                 if (renderer) renderer.render(scene, camera);
             }
             animate();
+            
             window.addEventListener('resize', () => {
-                camera.aspect = container.clientWidth / container.clientHeight;
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
                 camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.setSize(w, h);
             });
         }
 
@@ -228,9 +235,11 @@
                         if (isOpaque(x, y)) {
                             const u = x / (resW - 1);
                             const v = 1 - (y / (resH - 1));
-                            const bri = (0.299 * pixels[(y * resW + x) * 4] + 0.587 * pixels[(y * resW + x) * 4 + 1] + 0.114 * pixels[(y * resW + x) * 4 + 2]) / 255;
+                            const idx = (y * resW + x) * 4;
+                            const bri = (0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2]) / 255;
                             const frontZ = (1 - bri) * state.maxThickness + state.baseThickness;
                             const backZ = 0;
+
                             const calcPos = (uu, vv, zz) => {
                                 if (state.shape === 'Curved') {
                                     const r = state.curveRadius + zz;
@@ -239,8 +248,11 @@
                                 }
                                 return [(uu - 0.5) * state.width, (vv - 0.5) * state.height, zz];
                             };
+
+                            const fp = calcPos(u, v, frontZ);
+                            const bp = calcPos(u, v, backZ);
                             gridIndices[y * resW + x] = vCount;
-                            vertices.push(...calcPos(u, v, frontZ), ...calcPos(u, v, backZ));
+                            vertices.push(...fp, ...bp);
                             vCount++;
                         }
                     }
@@ -267,6 +279,7 @@
                         if (i01 !== -1) { checkWall(x - 1, y, i00, i01); checkWall(x + 1, y, i01, i00); }
                     }
                 }
+                
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
                 geometry.setIndex(indices);
                 geometry.computeVertexNormals();
@@ -285,7 +298,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `LithoForge_Solid_${Date.now()}.stl`;
+            link.download = `WTIU_Solid_${Date.now()}.stl`;
             link.click();
             URL.revokeObjectURL(url);
         }
