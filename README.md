@@ -17,6 +17,7 @@
         .glass { background: rgba(10, 10, 18, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; margin: 0; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; }
+        .toggle-btn.active { background-color: #10b981; border-color: #34d399; color: white; }
         .control-label { font-size: 8px; font-weight: 800; color: #71717a; text-transform: uppercase; letter-spacing: 0.02em; display: flex; justify-content: space-between; line-height: 1; margin-bottom: 2px; }
         .value-badge { font-family: monospace; color: #a5b4fc; font-size: 8px; }
         .setting-card { background: rgba(255, 255, 255, 0.02); border-radius: 6px; padding: 4px 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
@@ -28,7 +29,7 @@
 
     <header class="h-[var(--header-h)] px-4 glass z-40 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2">
-            <i class="fas fa-train text-indigo-500 text-base"></i>
+            <i class="fas fa-lightbulb text-indigo-500 text-base"></i>
             <h1 class="text-[10px] font-black tracking-tighter text-white uppercase italic">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
         </div>
         
@@ -43,7 +44,6 @@
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
-        <!-- Micro Sidebar -->
         <aside class="w-[var(--sidebar-w)] bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shrink-0 p-2 gap-2 overflow-hidden">
             
             <!-- 1. Source Image (Micro) -->
@@ -56,11 +56,16 @@
                 <input id="image-input" type="file" class="hidden" accept="image/*">
             </label>
 
-            <!-- 2. Shape Buttons -->
-            <div class="grid grid-cols-3 gap-1 shrink-0">
-                <button data-shape="Alpha" class="shape-btn active py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Edge</button>
-                <button data-shape="Rectangle" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Rect</button>
-                <button data-shape="Curved" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Curve</button>
+            <!-- 2. Shape Buttons & Toggle -->
+            <div class="flex flex-col gap-1 shrink-0">
+                <div class="grid grid-cols-3 gap-1">
+                    <button data-shape="Alpha" class="shape-btn active py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Edge</button>
+                    <button data-shape="Rectangle" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Rect</button>
+                    <button data-shape="Curved" class="shape-btn py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500">Curve</button>
+                </div>
+                <button id="nightlight-toggle" class="toggle-btn w-full py-1 rounded bg-zinc-900 text-[8px] font-black uppercase border border-zinc-800 text-zinc-500 transition-colors">
+                    <i class="fas fa-plug mr-1"></i> Add Nightlight Mount
+                </button>
             </div>
 
             <!-- 3. Mesh Grid (Compact) -->
@@ -104,7 +109,7 @@
                 </div>
             </div>
 
-            <div class="mt-auto border-t border-white/5 pt-1 opacity-20 text-[7px] text-center uppercase tracking-tighter">WTIU Shop Engine</div>
+            <div class="mt-auto border-t border-white/5 pt-1 opacity-20 text-[7px] text-center uppercase tracking-tighter">WTIU Nightlight Engine</div>
         </aside>
 
         <!-- Viewport Area -->
@@ -130,6 +135,7 @@
         let state = {
             image: null,
             shape: 'Alpha',
+            nightlight: false,
             maxThickness: 3.0,
             baseThickness: 1.0,
             curveRadius: 100,
@@ -222,14 +228,27 @@
                 const geometry = new THREE.BufferGeometry();
                 const vertices = [];
                 const indices = [];
+                
                 const isOpaque = (x, y) => {
                     if (state.shape === 'Rectangle') return true;
                     if (x < 0 || x >= resW || y < 0 || y >= resH) return false;
                     return pixels[(y * resW + x) * 4 + 3] > 120;
                 };
+
                 const gridIndices = new Int32Array(resW * resH).fill(-1);
                 let vCount = 0;
 
+                // Function to handle position calculation including Curved warping
+                const calcPos = (uu, vv, zz) => {
+                    if (state.shape === 'Curved') {
+                        const r = state.curveRadius + zz;
+                        const theta = (uu - 0.5) * (state.width / state.curveRadius);
+                        return [r * Math.sin(theta), (vv - 0.5) * state.height, r * Math.cos(theta) - state.curveRadius];
+                    }
+                    return [(uu - 0.5) * state.width, (vv - 0.5) * state.height, zz];
+                };
+
+                // 1. Generate Lithophane Vertices
                 for (let y = 0; y < resH; y++) {
                     for (let x = 0; x < resW; x++) {
                         if (isOpaque(x, y)) {
@@ -240,15 +259,6 @@
                             const frontZ = (1 - bri) * state.maxThickness + state.baseThickness;
                             const backZ = 0;
 
-                            const calcPos = (uu, vv, zz) => {
-                                if (state.shape === 'Curved') {
-                                    const r = state.curveRadius + zz;
-                                    const theta = (uu - 0.5) * (state.width / state.curveRadius);
-                                    return [r * Math.sin(theta), (vv - 0.5) * state.height, r * Math.cos(theta) - state.curveRadius];
-                                }
-                                return [(uu - 0.5) * state.width, (vv - 0.5) * state.height, zz];
-                            };
-
                             const fp = calcPos(u, v, frontZ);
                             const bp = calcPos(u, v, backZ);
                             gridIndices[y * resW + x] = vCount;
@@ -258,6 +268,7 @@
                     }
                 }
 
+                // 2. Stitch Lithophane Faces
                 for (let y = 0; y < resH; y++) {
                     for (let x = 0; x < resW; x++) {
                         const i00 = gridIndices[y * resW + x];
@@ -270,6 +281,8 @@
                             indices.push(i00 * 2, i01 * 2, i11 * 2, i00 * 2, i11 * 2, i10 * 2);
                             indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1, i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
                         }
+
+                        // Walls
                         const checkWall = (nx, ny, va, vb) => {
                             if ((nx < 0 || nx >= resW || ny < 0 || ny >= resH) || gridIndices[ny * resW + nx] === -1) {
                                 indices.push(va * 2, va * 2 + 1, vb * 2 + 1, va * 2, vb * 2 + 1, vb * 2);
@@ -279,6 +292,51 @@
                         if (i01 !== -1) { checkWall(x - 1, y, i00, i01); checkWall(x + 1, y, i01, i00); }
                     }
                 }
+
+                // 3. Optional Nightlight Mount (25mm wide, 15mm deep)
+                if (state.nightlight) {
+                    const mountW = 25;
+                    const mountD = 15;
+                    const mountT = 2.5; // Thickness of the mount
+                    const startV = vCount;
+
+                    // Mount position relative to the bottom center
+                    const centerU = 0.5;
+                    const bottomV = 0.0; // bottom of the model
+                    
+                    // Calculation for mount vertices
+                    const corners = [
+                        [-mountW/2, 0], [mountW/2, 0], 
+                        [mountW/2, -mountD], [-mountW/2, -mountD]
+                    ];
+
+                    // Generate vertices for the mounting tab (top and bottom faces)
+                    corners.forEach(c => {
+                        const [lx, ly] = c;
+                        // Transform relative coordinates into model space
+                        const u_off = centerU + (lx / state.width);
+                        const v_off = bottomV + (ly / state.height);
+                        
+                        const pTop = calcPos(u_off, v_off, mountT);
+                        const pBottom = calcPos(u_off, v_off, 0);
+                        
+                        vertices.push(...pTop, ...pBottom);
+                    });
+
+                    // Stitch mount faces (indices are relative to startV)
+                    // Top (0, 1, 2, 3), Bottom (4, 5, 6, 7) - each multiplied by 2 for the offset
+                    const m = startV * 2;
+                    indices.push(m, m+2, m+4, m, m+4, m+6); // Top face
+                    indices.push(m+1, m+5, m+3, m+1, m+7, m+5); // Bottom face
+                    
+                    // Side walls for the mount
+                    const pairs = [[0,1], [1,2], [2,3], [3,0]];
+                    pairs.forEach(p => {
+                        const a = m + p[0]*2;
+                        const b = m + p[1]*2;
+                        indices.push(a, a+1, b+1, a, b+1, b);
+                    });
+                }
                 
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
                 geometry.setIndex(indices);
@@ -287,7 +345,7 @@
                 mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide, shininess: 30 }));
                 scene.add(mesh);
                 document.getElementById('export-btn').disabled = false;
-                showToast("Mesh Ready");
+                showToast("Solid Generated");
             } catch (err) { console.error(err); } finally { loading.classList.add('hidden'); }
         }
 
@@ -298,7 +356,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `WTIU_Solid_${Date.now()}.stl`;
+            link.download = `WTIU_Nightlight_${Date.now()}.stl`;
             link.click();
             URL.revokeObjectURL(url);
         }
@@ -329,7 +387,8 @@
                 modelHeight: document.getElementById('model-height'),
                 renderBtn: document.getElementById('render-btn'),
                 exportBtn: document.getElementById('export-btn'),
-                curveControl: document.getElementById('curve-control')
+                curveControl: document.getElementById('curve-control'),
+                nightlightBtn: document.getElementById('nightlight-toggle')
             };
 
             el.imageInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
@@ -346,6 +405,12 @@
                     else el.curveControl.classList.add('hidden');
                 };
             });
+
+            el.nightlightBtn.onclick = () => {
+                state.nightlight = !state.nightlight;
+                el.nightlightBtn.classList.toggle('active', state.nightlight);
+                showToast(state.nightlight ? "Nightlight Mount Enabled" : "Mount Disabled");
+            };
 
             el.maxThick.oninput = (e) => { state.maxThickness = parseFloat(e.target.value); el.maxThickVal.innerText = state.maxThickness.toFixed(1) + 'mm'; };
             el.baseThick.oninput = (e) => { state.baseThickness = parseFloat(e.target.value); el.baseThickVal.innerText = state.baseThickness.toFixed(1) + 'mm'; };
