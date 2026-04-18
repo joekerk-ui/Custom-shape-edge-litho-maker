@@ -7,10 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Stable Global Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/exporters/STLExporter.js"></script>
+    <!-- Using Unpkg for high reliability on GitHub Pages -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
 
     <style>
         body { background-color: #050508; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
@@ -34,7 +34,7 @@
                 <i class="fas fa-train text-white text-xl"></i>
             </div>
             <div>
-                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
+                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase text-nowrap">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
                 <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
             </div>
         </div>
@@ -44,10 +44,7 @@
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
-        <!-- Pinned Sidebar -->
         <aside class="w-80 bg-[#08080c] border-r border-white/5 flex flex-col z-20 shadow-2xl">
-            
-            <!-- Scrollable Settings Area -->
             <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                 <section>
                     <div class="control-label"><span>1. Source Image</span> <i class="fas fa-image"></i></div>
@@ -120,7 +117,6 @@
                 </section>
             </div>
 
-            <!-- Fixed Action Area -->
             <div class="p-6 border-t border-white/5 bg-zinc-950/50">
                 <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
                     <i class="fas fa-hammer"></i> GENERATE SOLID
@@ -128,11 +124,9 @@
             </div>
         </aside>
 
-        <!-- Viewport Area -->
         <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)]">
             <div id="canvas-container" class="w-full h-full"></div>
             
-            <!-- Overlays and Toasts -->
             <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
                 <div class="flex flex-col items-center gap-6 text-center">
                     <div class="w-20 h-20 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
@@ -169,9 +163,16 @@
 
         let scene, camera, renderer, controls, mesh;
 
-        function init() {
+        function initEngine() {
             const container = document.getElementById('canvas-container');
             if (!container) return;
+
+            // Check if Three.js is loaded
+            if (typeof THREE === 'undefined' || !THREE.OrbitControls || !THREE.STLExporter) {
+                console.error("Three.js libraries not fully loaded. Retrying...");
+                setTimeout(initEngine, 500);
+                return;
+            }
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
@@ -207,6 +208,8 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(container.clientWidth, container.clientHeight);
             });
+            
+            showToast("Graphics Engine Online");
         }
 
         function handleFile(file) {
@@ -251,7 +254,7 @@
                 const pixels = ctx.getImageData(0, 0, resW, resH).data;
 
                 lBar.style.width = '40%';
-                lText.innerText = "Generating Solid Volume...";
+                lText.innerText = "Stitching Solid Volume...";
 
                 const geometry = new THREE.BufferGeometry();
                 const vertices = [];
@@ -309,15 +312,12 @@
                         const i11 = (x < resW - 1 && y < resH - 1) ? gridIndices[(y + 1) * resW + (x + 1)] : -1;
 
                         if (i10 !== -1 && i01 !== -1 && i11 !== -1) {
-                            // Front
                             indices.push(i00 * 2, i01 * 2, i11 * 2);
                             indices.push(i00 * 2, i11 * 2, i10 * 2);
-                            // Back
                             indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1);
                             indices.push(i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
                         }
 
-                        // Walls
                         const checkWall = (nx, ny, va, vb) => {
                             const other = (nx < 0 || nx >= resW || ny < 0 || ny >= resH) ? -1 : gridIndices[ny * resW + nx];
                             if (other === -1) {
@@ -374,7 +374,7 @@
         }
 
         function setupUI() {
-            init();
+            initEngine();
             const el = {
                 imageInput: document.getElementById('image-input'),
                 dropZone: document.getElementById('drop-zone'),
@@ -421,7 +421,7 @@
             el.exportBtn.onclick = exportSTL;
         }
 
-        document.addEventListener('DOMContentLoaded', setupUI);
+        window.addEventListener('load', setupUI);
     </script>
 </body>
 </html>
