@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LithoForge Ultra HD - Solid STL Maker</title>
+    <title>LithoForge Ultra HD - Solid Manifold Maker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -23,8 +23,7 @@
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
         .control-label { font-size: 10px; font-weight: 900; color: #52525b; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .value-badge { font-family: monospace; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; }
-        
-        #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.02); }
+        #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.01); }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -35,12 +34,12 @@
                 <i class="fas fa-train text-white text-xl"></i>
             </div>
             <div>
-                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Solid HD</span></h1>
+                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
                 <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
             </div>
         </div>
         <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-8 py-3 rounded-full transition-all font-black text-xs tracking-widest shadow-lg active:scale-95">
-            <i class="fas fa-save"></i> DOWNLOAD MANIFOLD STL
+            <i class="fas fa-save"></i> DOWNLOAD SOLID STL
         </button>
     </header>
 
@@ -48,7 +47,7 @@
         <aside class="w-80 bg-[#08080c] border-r border-white/5 overflow-y-auto p-6 flex flex-col gap-8 z-20 shadow-2xl custom-scrollbar">
             
             <section>
-                <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
+                <div class="control-label"><span>1. Source Image</span> <i class="fas fa-image"></i></div>
                 <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-40 overflow-hidden group">
                     <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
                         <i class="fas fa-upload text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
@@ -118,7 +117,7 @@
             </section>
 
             <button id="render-btn" disabled class="mt-auto flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
-                <i class="fas fa-hammer"></i> GENERATE MANIFOLD
+                <i class="fas fa-hammer"></i> GENERATE SOLID
             </button>
         </aside>
 
@@ -146,7 +145,6 @@
     <canvas id="hidden-canvas" class="hidden"></canvas>
 
     <script>
-        // State
         let state = {
             image: null,
             shape: 'Alpha',
@@ -243,7 +241,7 @@
                 const pixels = ctx.getImageData(0, 0, resW, resH).data;
 
                 lBar.style.width = '40%';
-                lText.innerText = "Stitching Solid Volume...";
+                lText.innerText = "Stitching Manifold Geometry...";
 
                 const geometry = new THREE.BufferGeometry();
                 const vertices = [];
@@ -251,7 +249,6 @@
                 
                 const isOpaque = (x, y) => {
                     if (state.shape === 'Rectangle') return true;
-                    // In Alpha and Curved mode, we respect the PNG transparency
                     if (x < 0 || x >= resW || y < 0 || y >= resH) return false;
                     return pixels[(y * resW + x) * 4 + 3] > 120;
                 };
@@ -259,7 +256,7 @@
                 const gridIndices = new Int32Array(resW * resH).fill(-1);
                 let vCount = 0;
 
-                // 1. Generate Vertices
+                // 1. Create Vertices (Front & Back for every opaque pixel)
                 for (let y = 0; y < resH; y++) {
                     for (let x = 0; x < resW; x++) {
                         if (isOpaque(x, y)) {
@@ -267,38 +264,25 @@
                             const v = 1 - (y / (resH - 1));
                             
                             const idx = (y * resW + x) * 4;
-                            const brightness = (0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2]) / 255;
-                            const litThickness = (1 - brightness) * state.maxThickness + state.baseThickness;
+                            const bri = (0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2]) / 255;
+                            const frontZ = (1 - bri) * state.maxThickness + state.baseThickness;
+                            const backZ = 0;
 
-                            let posX, posY, posZ_F, posZ_B, posX_B;
+                            const calcPos = (uu, vv, zz) => {
+                                if (state.shape === 'Curved') {
+                                    const r = state.curveRadius + zz;
+                                    const theta = (uu - 0.5) * (state.width / state.curveRadius);
+                                    return [r * Math.sin(theta), (vv - 0.5) * state.height, r * Math.cos(theta) - state.curveRadius];
+                                }
+                                return [(uu - 0.5) * state.width, (vv - 0.5) * state.height, zz];
+                            };
 
-                            if (state.shape === 'Curved') {
-                                // Warp horizontally around a cylinder
-                                const arcLength = state.width;
-                                const radius = state.curveRadius;
-                                const angle = (u - 0.5) * (arcLength / radius);
-                                
-                                // Front vertex (outer curve)
-                                posX = (radius + litThickness) * Math.sin(angle);
-                                posZ_F = (radius + litThickness) * Math.cos(angle) - radius;
-                                posY = (v - 0.5) * state.height;
-
-                                // Back vertex (inner curve)
-                                posX_B = radius * Math.sin(angle);
-                                posZ_B = radius * Math.cos(angle) - radius;
-                            } else {
-                                // Standard Flat
-                                posX = (u - 0.5) * state.width;
-                                posY = (v - 0.5) * state.height;
-                                posZ_F = litThickness;
-                                posX_B = posX;
-                                posZ_B = 0;
-                            }
+                            const fp = calcPos(u, v, frontZ);
+                            const bp = calcPos(u, v, backZ);
 
                             gridIndices[y * resW + x] = vCount;
-                            
-                            vertices.push(posX, posY, posZ_F); // Front vertex (idx*2)
-                            vertices.push(posX_B, posY, posZ_B); // Back vertex (idx*2 + 1)
+                            vertices.push(...fp); // Front
+                            vertices.push(...bp); // Back
                             vCount++;
                         }
                     }
@@ -306,47 +290,50 @@
 
                 lBar.style.width = '70%';
 
-                const isCellActive = (x, y) => {
-                    if (x < 0 || x >= resW - 1 || y < 0 || y >= resH - 1) return false;
-                    return gridIndices[y * resW + x] !== -1 &&
-                           gridIndices[y * resW + x + 1] !== -1 &&
-                           gridIndices[(y + 1) * resW + x] !== -1 &&
-                           gridIndices[(y + 1) * resW + x + 1] !== -1;
-                };
-
-                // 2. Stitching
-                for (let y = 0; y < resH - 1; y++) {
-                    for (let x = 0; x < resW - 1; x++) {
+                // 2. Stitching Faces and Walls
+                for (let y = 0; y < resH; y++) {
+                    for (let x = 0; x < resW; x++) {
                         const i00 = gridIndices[y * resW + x];
-                        const i10 = gridIndices[y * resW + x + 1];
-                        const i01 = gridIndices[(y + 1) * resW + x];
-                        const i11 = gridIndices[(y + 1) * resW + x + 1];
+                        if (i00 === -1) continue;
 
-                        if (i00 !== -1 && i10 !== -1 && i01 !== -1 && i11 !== -1) {
-                            // Front Surfaces
+                        const i10 = (x < resW - 1) ? gridIndices[y * resW + x + 1] : -1;
+                        const i01 = (y < resH - 1) ? gridIndices[(y + 1) * resW + x] : -1;
+                        const i11 = (x < resW - 1 && y < resH - 1) ? gridIndices[(y + 1) * resW + x + 1] : -1;
+
+                        // Surface Faces (If neighbor quads are opaque)
+                        if (i10 !== -1 && i01 !== -1 && i11 !== -1) {
+                            // Front (CCW)
                             indices.push(i00 * 2, i01 * 2, i11 * 2);
                             indices.push(i00 * 2, i11 * 2, i10 * 2);
-                            // Back Surfaces
+                            // Back (CW)
                             indices.push(i00 * 2 + 1, i11 * 2 + 1, i01 * 2 + 1);
                             indices.push(i00 * 2 + 1, i10 * 2 + 1, i11 * 2 + 1);
+                        }
 
-                            // Side Walls (Bridges between front and back surfaces at boundaries)
-                            if (!isOpaque(x, y - 1)) { // Top Edge
-                                indices.push(i00 * 2, i10 * 2, i10 * 2 + 1);
-                                indices.push(i00 * 2, i10 * 2 + 1, i00 * 2 + 1);
+                        // Walls (Bridge between front/back at every alpha-boundary edge)
+                        // Check 4 directions
+                        const checkWall = (nx, ny, va, vb) => {
+                            const other = (nx < 0 || nx >= resW || ny < 0 || ny >= resH) ? -1 : gridIndices[ny * resW + nx];
+                            if (other === -1) {
+                                // Add 2 triangles for the side panel
+                                indices.push(va * 2, va * 2 + 1, vb * 2 + 1);
+                                indices.push(va * 2, vb * 2 + 1, vb * 2);
                             }
-                            if (!isOpaque(x, y + 1)) { // Bottom Edge
-                                indices.push(i11 * 2, i01 * 2, i01 * 2 + 1);
-                                indices.push(i11 * 2, i01 * 2 + 1, i11 * 2 + 1);
-                            }
-                            if (!isOpaque(x - 1, y)) { // Left Edge
-                                indices.push(i01 * 2, i00 * 2, i00 * 2 + 1);
-                                indices.push(i01 * 2, i00 * 2 + 1, i01 * 2 + 1);
-                            }
-                            if (!isOpaque(x + 1, y)) { // Right Edge
-                                indices.push(i10 * 2, i11 * 2, i11 * 2 + 1);
-                                indices.push(i10 * 2, i11 * 2 + 1, i10 * 2 + 1);
-                            }
+                        };
+
+                        if (i10 !== -1) checkWall(x, y - 1, i10, i00); // Top
+                        if (i10 !== -1) checkWall(x, y + 1, i00, i10); // Bottom
+                        if (i01 !== -1) checkWall(x - 1, y, i00, i01); // Left
+                        if (i01 !== -1) checkWall(x + 1, y, i01, i00); // Right
+                        
+                        // Extra wall-check for single pixel lines or isolated pixels
+                        if (x < resW - 1 && i10 !== -1) {
+                            checkWall(x, y-1, i00, i10); 
+                            checkWall(x, y+1, i10, i00);
+                        }
+                        if (y < resH - 1 && i01 !== -1) {
+                            checkWall(x-1, y, i01, i00);
+                            checkWall(x+1, y, i00, i01);
                         }
                     }
                 }
@@ -376,11 +363,10 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `WTIU_Solid_Layout_${Math.floor(Date.now()/1000)}.stl`;
+            link.download = `LithoForge_Solid_${Date.now()}.stl`;
             document.body.appendChild(link);
             link.click();
             setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 2000);
-            showToast("STL Saved");
         }
 
         function showToast(msg) {
@@ -394,44 +380,50 @@
 
         function setupUI() {
             init();
-            const elements = [
-                'image-input', 'drop-zone', 'max-thick', 'max-thick-val', 
-                'base-thick', 'base-thick-val', 'smooth-slider', 'smooth-val',
-                'res-slider', 'res-val', 'model-width', 'model-height',
-                'render-btn', 'export-btn', 'img-preview', 'upload-placeholder',
-                'curve-control', 'curve-radius', 'curve-radius-val'
-            ];
-            const el = {};
-            elements.forEach(id => el[id] = document.getElementById(id));
+            const el = {
+                imageInput: document.getElementById('image-input'),
+                dropZone: document.getElementById('drop-zone'),
+                maxThick: document.getElementById('max-thick'),
+                maxThickVal: document.getElementById('max-thick-val'),
+                baseThick: document.getElementById('base-thick'),
+                baseThickVal: document.getElementById('base-thick-val'),
+                smoothSlider: document.getElementById('smooth-slider'),
+                smoothVal: document.getElementById('smooth-val'),
+                resSlider: document.getElementById('res-slider'),
+                resVal: document.getElementById('res-val'),
+                curveRadius: document.getElementById('curve-radius'),
+                curveRadiusVal: document.getElementById('curve-radius-val'),
+                modelWidth: document.getElementById('model-width'),
+                modelHeight: document.getElementById('model-height'),
+                renderBtn: document.getElementById('render-btn'),
+                exportBtn: document.getElementById('export-btn'),
+                curveControl: document.getElementById('curve-control')
+            };
 
-            el['image-input'].addEventListener('change', (e) => handleFile(e.target.files[0]));
-            el['drop-zone'].addEventListener('dragover', (e) => { e.preventDefault(); el['drop-zone'].classList.add('drag-over'); });
-            el['drop-zone'].addEventListener('dragleave', () => el['drop-zone'].classList.remove('drag-over'));
-            el['drop-zone'].addEventListener('drop', (e) => { e.preventDefault(); el['drop-zone'].classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+            el.imageInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+            el.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); el.dropZone.classList.add('drag-over'); });
+            el.dropZone.addEventListener('dragleave', () => el.dropZone.classList.remove('drag-over'));
+            el.dropZone.addEventListener('drop', (e) => { e.preventDefault(); el.dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
 
             document.querySelectorAll('.shape-btn').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     state.shape = btn.dataset.shape;
-                    
-                    if (state.shape === 'Curved') {
-                        el['curve-control'].classList.remove('hidden');
-                    } else {
-                        el['curve-control'].classList.add('hidden');
-                    }
+                    if (state.shape === 'Curved') el.curveControl.classList.remove('hidden');
+                    else el.curveControl.classList.add('hidden');
                 };
             });
 
-            el['max-thick'].oninput = (e) => { state.maxThickness = parseFloat(e.target.value); el['max-thick-val'].innerText = state.maxThickness.toFixed(1) + 'mm'; };
-            el['base-thick'].oninput = (e) => { state.baseThickness = parseFloat(e.target.value); el['base-thick-val'].innerText = state.baseThickness.toFixed(1) + 'mm'; };
-            el['curve-radius'].oninput = (e) => { state.curveRadius = parseFloat(e.target.value); el['curve-radius-val'].innerText = state.curveRadius + 'mm'; };
-            el['smooth-slider'].oninput = (e) => { state.smoothing = parseFloat(e.target.value); el['smooth-val'].innerText = state.smoothing.toFixed(1) + 'px'; };
-            el['res-slider'].oninput = (e) => { state.resolution = parseInt(e.target.value); el['res-val'].innerText = state.resolution + 'px'; };
-            el['model-width'].onchange = (e) => state.width = parseFloat(e.target.value) || 100;
-            el['model-height'].onchange = (e) => state.height = parseFloat(e.target.value) || 100;
-            el['render-btn'].onclick = processImage;
-            el['export-btn'].onclick = exportSTL;
+            el.maxThick.oninput = (e) => { state.maxThickness = parseFloat(e.target.value); el.maxThickVal.innerText = state.maxThickness.toFixed(1) + 'mm'; };
+            el.baseThick.oninput = (e) => { state.baseThickness = parseFloat(e.target.value); el.baseThickVal.innerText = state.baseThickness.toFixed(1) + 'mm'; };
+            el.curveRadius.oninput = (e) => { state.curveRadius = parseFloat(e.target.value); el.curveRadiusVal.innerText = state.curveRadius + 'mm'; };
+            el.smoothSlider.oninput = (e) => { state.smoothing = parseFloat(e.target.value); el.smoothVal.innerText = state.smoothing.toFixed(1) + 'px'; };
+            el.resSlider.oninput = (e) => { state.resolution = parseInt(e.target.value); el.resVal.innerText = state.resolution + 'px'; };
+            el.modelWidth.onchange = (e) => state.width = parseFloat(e.target.value) || 100;
+            el.modelHeight.onchange = (e) => state.height = parseFloat(e.target.value) || 100;
+            el.renderBtn.onclick = processImage;
+            el.exportBtn.onclick = exportSTL;
         }
 
         document.addEventListener('DOMContentLoaded', setupUI);
