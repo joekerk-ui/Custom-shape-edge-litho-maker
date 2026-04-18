@@ -17,9 +17,13 @@
         .glass { background: rgba(10, 10, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; }
         .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #050508; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f1f2e; border-radius: 10px; }
+        
+        /* Improved Scrollbar Visibility */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2d2d3d; border-radius: 10px; border: 2px solid #08080c; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
         .control-label { font-size: 10px; font-weight: 900; color: #52525b; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .value-badge { font-family: monospace; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; }
@@ -28,7 +32,7 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <header class="px-6 py-4 glass z-40 flex items-center justify-between shadow-2xl">
+    <header class="h-16 px-6 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
         <div class="flex items-center gap-3">
             <div class="bg-indigo-600 p-2 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]">
                 <i class="fas fa-train text-white text-xl"></i>
@@ -38,14 +42,17 @@
                 <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
             </div>
         </div>
-        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-8 py-3 rounded-full transition-all font-black text-xs tracking-widest shadow-lg active:scale-95">
+        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-8 py-2 rounded-full transition-all font-black text-xs tracking-widest shadow-lg active:scale-95">
             <i class="fas fa-save"></i> DOWNLOAD SOLID STL
         </button>
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
-        <aside class="w-80 bg-[#08080c] border-r border-white/5 flex flex-col z-20 shadow-2xl">
-            <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+        <!-- Pinned Sidebar with strict overflow containment -->
+        <aside class="w-80 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shadow-2xl overflow-hidden">
+            
+            <!-- Scrollable Settings Area - min-h-0 is the fix for nested flex scrolling -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar min-h-0">
                 <section>
                     <div class="control-label"><span>1. Source Image</span> <i class="fas fa-image"></i></div>
                     <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-40 overflow-hidden group">
@@ -72,7 +79,7 @@
                     </div>
                 </section>
 
-                <section class="flex flex-col gap-6 pb-4">
+                <section class="flex flex-col gap-6">
                     <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
                     
                     <div class="space-y-6">
@@ -103,7 +110,7 @@
                             <input id="res-slider" type="range" min="50" max="400" step="10" value="200" class="w-full">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-4 pb-4">
                             <div>
                                 <span class="control-label italic">Width (mm)</span>
                                 <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
@@ -117,13 +124,15 @@
                 </section>
             </div>
 
-            <div class="p-6 border-t border-white/5 bg-zinc-950/50">
+            <!-- Pinned Bottom Action Area -->
+            <div class="p-6 border-t border-white/5 bg-zinc-950/80 shrink-0">
                 <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
                     <i class="fas fa-hammer"></i> GENERATE SOLID
                 </button>
             </div>
         </aside>
 
+        <!-- Viewport Area -->
         <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)]">
             <div id="canvas-container" class="w-full h-full"></div>
             
