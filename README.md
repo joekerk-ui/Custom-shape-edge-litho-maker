@@ -7,59 +7,59 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Using Unpkg for high reliability on GitHub Pages -->
+    <!-- Using JSDelivr for maximum reliability on GitHub Pages and sandboxed environments -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
 
     <style>
-        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #050508; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .glass { background: rgba(10, 10, 18, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; }
-        .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
+        input[type=range] { accent-color: #6366f1; cursor: pointer; height: 4px; width: 100%; }
+        .shape-btn.active { background-color: #4f46e5; border-color: #818cf8; color: white; box-shadow: 0 0 15px rgba(79, 70, 229, 0.4); }
         
-        /* Improved Scrollbar Visibility */
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2d2d3d; border-radius: 10px; border: 2px solid #08080c; }
+        /* High-Visibility Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f51; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
         
         #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
-        .control-label { font-size: 10px; font-weight: 900; color: #52525b; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-        .value-badge { font-family: monospace; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; }
+        .control-label { font-size: 10px; font-weight: 900; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+        .value-badge { font-family: monospace; color: #a5b4fc; background: rgba(99, 102, 241, 0.1); padding: 1px 5px; border-radius: 3px; font-size: 10px; }
         #drop-zone.drag-over { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); transform: scale(1.01); }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body>
 
-    <header class="h-16 px-6 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="bg-indigo-600 p-2 rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]">
-                <i class="fas fa-train text-white text-xl"></i>
+    <header class="h-14 px-5 glass z-40 flex items-center justify-between shadow-2xl shrink-0">
+        <div class="flex items-center gap-2.5">
+            <div class="bg-indigo-600 p-1.5 rounded-lg shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+                <i class="fas fa-train text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="text-xl font-black tracking-tight text-white leading-none italic uppercase text-nowrap">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
-                <p class="text-[9px] text-zinc-500 font-mono mt-1 uppercase tracking-widest text-nowrap">WTIU (MTH) O-Scale Solid Mesh Engine</p>
+                <h1 class="text-lg font-black tracking-tight text-white leading-none italic uppercase">LithoForge <span class="text-indigo-400 font-light">Ultra HD</span></h1>
+                <p class="text-[8px] text-zinc-500 font-mono mt-0.5 uppercase tracking-widest text-nowrap font-bold">WTIU (MTH) O-Scale Solid Mesh Engine</p>
             </div>
         </div>
-        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-8 py-2 rounded-full transition-all font-black text-xs tracking-widest shadow-lg active:scale-95">
-            <i class="fas fa-save"></i> DOWNLOAD SOLID STL
+        <button id="export-btn" disabled class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white px-6 py-2 rounded-full transition-all font-black text-[10px] tracking-widest shadow-lg active:scale-95 uppercase">
+            <i class="fas fa-save"></i> Export STL
         </button>
     </header>
 
     <main class="flex flex-1 overflow-hidden relative">
-        <!-- Pinned Sidebar with strict overflow containment -->
-        <aside class="w-80 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shadow-2xl overflow-hidden">
+        <!-- Compact Sidebar -->
+        <aside class="w-72 bg-[#08080c] border-r border-white/5 flex flex-col h-full z-20 shadow-2xl shrink-0">
             
-            <!-- Scrollable Settings Area - min-h-0 is the fix for nested flex scrolling -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar min-h-0">
+            <!-- Scrollable Settings -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar min-h-0">
                 <section>
-                    <div class="control-label"><span>1. Source Image</span> <i class="fas fa-image"></i></div>
-                    <label id="drop-zone" for="image-input" class="relative border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/30 rounded-2xl p-4 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer h-40 overflow-hidden group">
-                        <div id="upload-placeholder" class="flex flex-col items-center gap-2 group-hover:scale-110 transition-transform pointer-events-none text-center px-4">
-                            <i class="fas fa-upload text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
-                            <span class="text-[10px] text-zinc-500 font-bold uppercase text-nowrap">Drag WTIU / MTH Photo</span>
-                            <span class="text-[8px] text-zinc-400 italic">Tracing silhouette edges...</span>
+                    <div class="control-label"><span>1. Image Source</span> <i class="fas fa-image"></i></div>
+                    <label id="drop-zone" for="image-input" class="relative border border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 rounded-xl p-3 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer h-32 overflow-hidden group">
+                        <div id="upload-placeholder" class="flex flex-col items-center gap-1 group-hover:scale-105 transition-transform text-center pointer-events-none">
+                            <i class="fas fa-upload text-2xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                            <span class="text-[9px] text-zinc-500 font-bold uppercase">Drag WTIU / MTH Photo</span>
+                            <span class="text-[7px] text-zinc-600 italic uppercase">Tracing edges...</span>
                         </div>
                         <img id="img-preview" class="hidden w-full h-full object-contain rounded-lg" alt="Preview">
                         <input id="image-input" type="file" class="hidden" accept="image/*">
@@ -68,66 +68,66 @@
 
                 <section>
                     <div class="control-label"><span>2. Geometry Type</span> <i class="fas fa-shapes"></i></div>
-                    <div class="grid grid-cols-1 gap-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button data-shape="Alpha" class="shape-btn active px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
-                            <button data-shape="Rectangle" class="shape-btn px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button data-shape="Alpha" class="shape-btn active py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Exact Edge</button>
+                            <button data-shape="Rectangle" class="shape-btn py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">Rectangle</button>
                         </div>
-                        <button data-shape="Curved" class="shape-btn px-3 py-3 rounded-xl text-[10px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">
-                            <i class="fas fa-dot-circle mr-1"></i> Curved (Cylindrical)
+                        <button data-shape="Curved" class="shape-btn py-2 rounded-lg text-[9px] font-black uppercase border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all">
+                            <i class="fas fa-dot-circle mr-1 text-[8px]"></i> Curved (Cylindrical)
                         </button>
                     </div>
                 </section>
 
-                <section class="flex flex-col gap-6">
+                <section class="space-y-4">
                     <div class="control-label"><span>3. Mesh Settings</span> <i class="fas fa-sliders-h"></i></div>
                     
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <div>
-                            <div class="control-label">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
-                            <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0" class="w-full">
+                            <div class="control-label text-zinc-400">Base Plate <span id="base-thick-val" class="value-badge">1.0mm</span></div>
+                            <input id="base-thick" type="range" min="0.4" max="4" step="0.1" value="1.0">
                         </div>
 
                         <div>
-                            <div class="control-label">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
-                            <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0" class="w-full">
+                            <div class="control-label text-zinc-400">Litho Height <span id="max-thick-val" class="value-badge">3.0mm</span></div>
+                            <input id="max-thick" type="range" min="1" max="10" step="0.1" value="3.0">
                         </div>
 
-                        <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-4 py-1 space-y-4">
+                        <div id="curve-control" class="hidden border-l-2 border-indigo-500/30 pl-3 py-0.5 space-y-4">
                             <div>
-                                <div class="control-label">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
-                                <input id="curve-radius" type="range" min="20" max="500" step="1" value="100" class="w-full">
+                                <div class="control-label text-zinc-400">Curve Radius <span id="curve-radius-val" class="value-badge">100mm</span></div>
+                                <input id="curve-radius" type="range" min="20" max="500" step="1" value="100">
                             </div>
                         </div>
 
                         <div>
-                            <div class="control-label">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
-                            <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5" class="w-full">
+                            <div class="control-label text-zinc-400">Smoothing <span id="smooth-val" class="value-badge">1.5px</span></div>
+                            <input id="smooth-slider" type="range" min="0" max="10" step="0.5" value="1.5">
                         </div>
 
                         <div>
-                            <div class="control-label">Detail Level <span id="res-val" class="value-badge">200px</span></div>
-                            <input id="res-slider" type="range" min="50" max="400" step="10" value="200" class="w-full">
+                            <div class="control-label text-zinc-400">Detail Level <span id="res-val" class="value-badge">200px</span></div>
+                            <input id="res-slider" type="range" min="50" max="400" step="10" value="200">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 pb-4">
+                        <div class="grid grid-cols-2 gap-3 pb-2">
                             <div>
-                                <span class="control-label italic">Width (mm)</span>
-                                <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                <span class="control-label italic text-zinc-500">Width (mm)</span>
+                                <input id="model-width" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 text-[10px] text-indigo-300 focus:outline-none">
                             </div>
                             <div>
-                                <span class="control-label italic">Height (mm)</span>
-                                <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs text-indigo-300 focus:outline-none">
+                                <span class="control-label italic text-zinc-500">Height (mm)</span>
+                                <input id="model-height" type="number" value="100" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 text-[10px] text-indigo-300 focus:outline-none">
                             </div>
                         </div>
                     </div>
                 </section>
             </div>
 
-            <!-- Pinned Bottom Action Area -->
-            <div class="p-6 border-t border-white/5 bg-zinc-950/80 shrink-0">
-                <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
-                    <i class="fas fa-hammer"></i> GENERATE SOLID
+            <!-- Pinned Bottom Action Button -->
+            <div class="p-4 border-t border-white/5 bg-zinc-950/80 shrink-0">
+                <button id="render-btn" disabled class="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-20 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] transition-all shadow-xl active:scale-95">
+                    <i class="fas fa-hammer"></i> Generate Solid
                 </button>
             </div>
         </aside>
@@ -136,19 +136,20 @@
         <div class="flex-1 relative bg-[radial-gradient(circle_at_center,_#11111a_0%,_#050508_100%)]">
             <div id="canvas-container" class="w-full h-full"></div>
             
+            <!-- Loading Indicator -->
             <div id="loading-overlay" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
-                <div class="flex flex-col items-center gap-6 text-center">
-                    <div class="w-20 h-20 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
-                    <div class="space-y-2">
-                        <p id="loading-text" class="font-bold text-white text-lg tracking-widest uppercase italic">Sculpting Solid Volume</p>
-                        <div class="w-48 h-1 bg-zinc-900 rounded-full overflow-hidden">
+                <div class="flex flex-col items-center gap-4 text-center">
+                    <div class="w-12 h-12 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin"></div>
+                    <div class="space-y-1">
+                        <p id="loading-text" class="font-bold text-white text-sm tracking-widest uppercase italic">Sculpting Solid Volume</p>
+                        <div class="w-40 h-1 bg-zinc-900 rounded-full overflow-hidden">
                             <div id="loading-bar" class="w-0 h-full bg-indigo-500 transition-all duration-300"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap">
+            <div id="toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-full text-[9px] font-black text-indigo-400 tracking-widest shadow-2xl opacity-0 transition-opacity uppercase pointer-events-none text-nowrap">
                 <span id="toast-text">Ready</span>
             </div>
         </div>
@@ -176,16 +177,16 @@
             const container = document.getElementById('canvas-container');
             if (!container) return;
 
-            // Check if Three.js is loaded
+            // Library Availability Check
             if (typeof THREE === 'undefined' || !THREE.OrbitControls || !THREE.STLExporter) {
-                console.error("Three.js libraries not fully loaded. Retrying...");
+                console.warn("Retrying engine initialization...");
                 setTimeout(initEngine, 500);
                 return;
             }
 
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
-            camera.position.set(0, -180, 180);
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 10000);
+            camera.position.set(0, -200, 200);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -194,10 +195,10 @@
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
             const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            mainLight.position.set(50, 50, 300);
+            mainLight.position.set(50, 50, 500);
             scene.add(mainLight);
 
-            const grid = new THREE.GridHelper(400, 40, 0x1a1a2e, 0x111111);
+            const grid = new THREE.GridHelper(500, 50, 0x1a1a2e, 0x111111);
             grid.rotation.x = Math.PI / 2;
             scene.add(grid);
 
@@ -218,7 +219,7 @@
                 renderer.setSize(container.clientWidth, container.clientHeight);
             });
             
-            showToast("Graphics Engine Online");
+            showToast("System Ready");
         }
 
         function handleFile(file) {
@@ -232,7 +233,7 @@
                 if (preview) { preview.src = ev.target.result; preview.classList.remove('hidden'); }
                 if (placeholder) placeholder.classList.add('hidden');
                 if (renderBtn) renderBtn.disabled = false;
-                showToast("Image Traced");
+                showToast("Trace Prepared");
             };
             reader.readAsDataURL(file);
         }
@@ -351,7 +352,7 @@
                 scene.add(mesh);
                 
                 document.getElementById('export-btn').disabled = false;
-                showToast("Solid Manifold Ready");
+                showToast("Solid Generated");
             } catch (err) {
                 console.error(err);
             } finally {
@@ -367,7 +368,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `LithoForge_Solid_${Date.now()}.stl`;
+            link.download = `LithoForge_Manifold_${Date.now()}.stl`;
             document.body.appendChild(link);
             link.click();
             setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 2000);
